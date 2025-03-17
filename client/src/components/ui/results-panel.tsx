@@ -123,6 +123,10 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
             expertiseScore={result.expertiseScore}
             authoritativenessScore={result.authoritativenessScore}
             trustworthinessScore={result.trustworthinessScore}
+            experienceExplanation={result.experienceExplanation}
+            expertiseExplanation={result.expertiseExplanation}
+            authoritativenessExplanation={result.authoritativenessExplanation}
+            trustworthinessExplanation={result.trustworthinessExplanation}
           />
           
           {/* Helpful Content Scores */}
@@ -131,6 +135,10 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
             depthValueScore={result.depthValueScore}
             satisfactionScore={result.satisfactionScore}
             originalityScore={result.originalityScore}
+            userFirstExplanation={result.userFirstExplanation}
+            depthValueExplanation={result.depthValueExplanation}
+            satisfactionExplanation={result.satisfactionExplanation}
+            originalityExplanation={result.originalityExplanation}
           />
         </div>
         

@@ -31,6 +31,10 @@ interface HelpfulContentCardProps {
   depthValueScore: number;
   satisfactionScore: number;
   originalityScore: number;
+  userFirstExplanation?: string;
+  depthValueExplanation?: string;
+  satisfactionExplanation?: string;
+  originalityExplanation?: string;
 }
 
 const HelpfulContentCard = ({
@@ -38,6 +42,10 @@ const HelpfulContentCard = ({
   depthValueScore,
   satisfactionScore,
   originalityScore,
+  userFirstExplanation,
+  depthValueExplanation,
+  satisfactionExplanation,
+  originalityExplanation,
 }: HelpfulContentCardProps) => {
   return (
     <Card>
@@ -51,9 +59,18 @@ const HelpfulContentCard = ({
             <span className="text-sm font-medium">{userFirstScore.toFixed(1)}/10</span>
           </div>
           <ScoreGauge score={userFirstScore} />
-          <p className="text-xs text-neutral-500">
-            {helpfulContentExplanations.userFirst}
-          </p>
+          <div className="mt-2">
+            <p className="text-xs text-neutral-500 mb-1">
+              <span className="font-medium text-neutral-600">Definition:</span> {helpfulContentExplanations.userFirst}
+            </p>
+            {userFirstExplanation && (
+              <div className="bg-slate-50 p-2 rounded-md mt-1">
+                <p className="text-xs text-neutral-700">
+                  <span className="font-medium">Analysis:</span> {userFirstExplanation}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Depth & Value Score */}
@@ -63,9 +80,18 @@ const HelpfulContentCard = ({
             <span className="text-sm font-medium">{depthValueScore.toFixed(1)}/10</span>
           </div>
           <ScoreGauge score={depthValueScore} />
-          <p className="text-xs text-neutral-500">
-            {helpfulContentExplanations.depthValue}
-          </p>
+          <div className="mt-2">
+            <p className="text-xs text-neutral-500 mb-1">
+              <span className="font-medium text-neutral-600">Definition:</span> {helpfulContentExplanations.depthValue}
+            </p>
+            {depthValueExplanation && (
+              <div className="bg-slate-50 p-2 rounded-md mt-1">
+                <p className="text-xs text-neutral-700">
+                  <span className="font-medium">Analysis:</span> {depthValueExplanation}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Satisfaction Score */}
@@ -75,9 +101,18 @@ const HelpfulContentCard = ({
             <span className="text-sm font-medium">{satisfactionScore.toFixed(1)}/10</span>
           </div>
           <ScoreGauge score={satisfactionScore} />
-          <p className="text-xs text-neutral-500">
-            {helpfulContentExplanations.satisfaction}
-          </p>
+          <div className="mt-2">
+            <p className="text-xs text-neutral-500 mb-1">
+              <span className="font-medium text-neutral-600">Definition:</span> {helpfulContentExplanations.satisfaction}
+            </p>
+            {satisfactionExplanation && (
+              <div className="bg-slate-50 p-2 rounded-md mt-1">
+                <p className="text-xs text-neutral-700">
+                  <span className="font-medium">Analysis:</span> {satisfactionExplanation}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Originality Score */}
@@ -87,9 +122,18 @@ const HelpfulContentCard = ({
             <span className="text-sm font-medium">{originalityScore.toFixed(1)}/10</span>
           </div>
           <ScoreGauge score={originalityScore} />
-          <p className="text-xs text-neutral-500">
-            {helpfulContentExplanations.originality}
-          </p>
+          <div className="mt-2">
+            <p className="text-xs text-neutral-500 mb-1">
+              <span className="font-medium text-neutral-600">Definition:</span> {helpfulContentExplanations.originality}
+            </p>
+            {originalityExplanation && (
+              <div className="bg-slate-50 p-2 rounded-md mt-1">
+                <p className="text-xs text-neutral-700">
+                  <span className="font-medium">Analysis:</span> {originalityExplanation}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

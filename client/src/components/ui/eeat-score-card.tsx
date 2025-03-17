@@ -31,6 +31,10 @@ interface EEATScoreCardProps {
   expertiseScore: number;
   authoritativenessScore: number;
   trustworthinessScore: number;
+  experienceExplanation?: string;
+  expertiseExplanation?: string;
+  authoritativenessExplanation?: string;
+  trustworthinessExplanation?: string;
 }
 
 const EEATScoreCard = ({
@@ -38,6 +42,10 @@ const EEATScoreCard = ({
   expertiseScore,
   authoritativenessScore,
   trustworthinessScore,
+  experienceExplanation,
+  expertiseExplanation,
+  authoritativenessExplanation,
+  trustworthinessExplanation,
 }: EEATScoreCardProps) => {
   return (
     <Card>
@@ -51,9 +59,18 @@ const EEATScoreCard = ({
             <span className="text-sm font-medium">{experienceScore.toFixed(1)}/10</span>
           </div>
           <ScoreGauge score={experienceScore} />
-          <p className="text-xs text-neutral-500">
-            {eatExplanations.experience}
-          </p>
+          <div className="mt-2">
+            <p className="text-xs text-neutral-500 mb-1">
+              <span className="font-medium text-neutral-600">Definition:</span> {eatExplanations.experience}
+            </p>
+            {experienceExplanation && (
+              <div className="bg-slate-50 p-2 rounded-md mt-1">
+                <p className="text-xs text-neutral-700">
+                  <span className="font-medium">Analysis:</span> {experienceExplanation}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Expertise Score */}
@@ -63,9 +80,18 @@ const EEATScoreCard = ({
             <span className="text-sm font-medium">{expertiseScore.toFixed(1)}/10</span>
           </div>
           <ScoreGauge score={expertiseScore} />
-          <p className="text-xs text-neutral-500">
-            {eatExplanations.expertise}
-          </p>
+          <div className="mt-2">
+            <p className="text-xs text-neutral-500 mb-1">
+              <span className="font-medium text-neutral-600">Definition:</span> {eatExplanations.expertise}
+            </p>
+            {expertiseExplanation && (
+              <div className="bg-slate-50 p-2 rounded-md mt-1">
+                <p className="text-xs text-neutral-700">
+                  <span className="font-medium">Analysis:</span> {expertiseExplanation}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Authoritativeness Score */}
@@ -75,9 +101,18 @@ const EEATScoreCard = ({
             <span className="text-sm font-medium">{authoritativenessScore.toFixed(1)}/10</span>
           </div>
           <ScoreGauge score={authoritativenessScore} />
-          <p className="text-xs text-neutral-500">
-            {eatExplanations.authoritativeness}
-          </p>
+          <div className="mt-2">
+            <p className="text-xs text-neutral-500 mb-1">
+              <span className="font-medium text-neutral-600">Definition:</span> {eatExplanations.authoritativeness}
+            </p>
+            {authoritativenessExplanation && (
+              <div className="bg-slate-50 p-2 rounded-md mt-1">
+                <p className="text-xs text-neutral-700">
+                  <span className="font-medium">Analysis:</span> {authoritativenessExplanation}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Trustworthiness Score */}
@@ -87,9 +122,18 @@ const EEATScoreCard = ({
             <span className="text-sm font-medium">{trustworthinessScore.toFixed(1)}/10</span>
           </div>
           <ScoreGauge score={trustworthinessScore} />
-          <p className="text-xs text-neutral-500">
-            {eatExplanations.trustworthiness}
-          </p>
+          <div className="mt-2">
+            <p className="text-xs text-neutral-500 mb-1">
+              <span className="font-medium text-neutral-600">Definition:</span> {eatExplanations.trustworthiness}
+            </p>
+            {trustworthinessExplanation && (
+              <div className="bg-slate-50 p-2 rounded-md mt-1">
+                <p className="text-xs text-neutral-700">
+                  <span className="font-medium">Analysis:</span> {trustworthinessExplanation}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
