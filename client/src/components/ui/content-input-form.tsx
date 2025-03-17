@@ -51,7 +51,41 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const text = event.target?.result as string;
+      let text = event.target?.result as string;
+      
+      // If it's an HTML file, extract the text content
+      if (file.name.toLowerCase().endsWith('.html')) {
+        try {
+          // Create a DOM parser
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(text, 'text/html');
+          
+          // Extract text from the body, remove script and style tags first
+          const scripts = doc.querySelectorAll('script, style');
+          scripts.forEach(script => script.remove());
+          
+          // Get text from body or main content areas
+          const mainContent = doc.querySelector('main, article, #content, .content');
+          text = mainContent 
+            ? mainContent.textContent || '' 
+            : doc.body.textContent || '';
+          
+          // Clean up the text
+          text = text.trim().replace(/\s+/g, ' ');
+          
+          // Set a title if none was provided
+          if (!title) {
+            const docTitle = doc.querySelector('title');
+            if (docTitle && docTitle.textContent) {
+              setTitle(docTitle.textContent.trim());
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing HTML:', error);
+          // If HTML parsing fails, just use the raw text
+        }
+      }
+      
       setContent(text);
       setCharCount(text.length);
     };
@@ -205,7 +239,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
                   type="file"
                   ref={fileInputRef}
                   className="hidden"
-                  accept=".txt,.docx,.pdf"
+                  accept=".txt,.docx,.pdf,.html"
                   onChange={handleFileChange}
                 />
                 <Button
@@ -216,7 +250,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
                   Browse files
                 </Button>
                 <p className="text-xs text-neutral-500 mt-2">
-                  Supported formats: .txt, .docx, .pdf (Max 5MB)
+                  Supported formats: .txt, .docx, .pdf, .html (Max 5MB)
                 </p>
               </div>
             </div>
