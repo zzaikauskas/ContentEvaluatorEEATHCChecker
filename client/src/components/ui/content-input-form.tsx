@@ -140,6 +140,77 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
       return;
     }
 
+    // Handle PDF and DOCX files with server-side processing
+    const isPdf = file.name.toLowerCase().endsWith('.pdf');
+    const isDocx = file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc');
+    
+    if (isPdf || isDocx) {
+      // Set loading state
+      toast({
+        title: `Processing ${isPdf ? 'PDF' : 'DOCX'} file`,
+        description: "Extracting content and links...",
+        duration: 5000,
+      });
+      
+      // Create a FormData object to send the file
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Send file to the server for processing
+      fetch('/api/parse-document', {
+        method: 'POST',
+        body: formData,
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to process document');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Set the extracted content and title
+          setContent(data.text);
+          setCharCount(data.text.length);
+          
+          if (data.title && !title.trim()) {
+            setTitle(data.title);
+            toast({
+              title: "Title extracted",
+              description: `A title has been extracted from your ${isPdf ? 'PDF' : 'DOCX'} file.`,
+              duration: 3000,
+            });
+          } else {
+            // Try to extract title from text content
+            const extractedTitle = extractTitleFromContent(data.text);
+            if (extractedTitle && !title.trim()) {
+              setTitle(extractedTitle);
+              toast({
+                title: "Title extracted",
+                description: "A potential title has been identified from your document content.",
+                duration: 3000,
+              });
+            }
+          }
+          
+          toast({
+            title: `${isPdf ? 'PDF' : 'DOCX'} processed successfully`,
+            description: `${data.links.length} links were found in your document.`,
+            duration: 3000,
+          });
+        })
+        .catch(error => {
+          console.error('Document processing error:', error);
+          toast({
+            title: "Document processing failed",
+            description: error.message || "Could not process the document file.",
+            variant: "destructive",
+          });
+        });
+      
+      return;
+    }
+
+    // Handle text-based files (HTML, TXT)
     const reader = new FileReader();
     reader.onload = (event) => {
       let text = event.target?.result as string;
@@ -485,6 +556,9 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
                 </Button>
                 <p className="text-xs text-neutral-500 mt-2">
                   Supported formats: .txt, .docx, .pdf, .html (Max 5MB)
+                </p>
+                <p className="text-xs text-neutral-500 mt-1">
+                  <strong>Link checking is supported in all file formats</strong> - PDF and DOCX files will be processed server-side to extract links.
                 </p>
               </div>
             </div>
