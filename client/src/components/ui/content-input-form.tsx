@@ -53,8 +53,20 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
   // Helper function to extract potential title from content
   const extractTitleFromContent = (text: string): string | null => {
     if (!text.trim()) return null;
+
+    // First, check if we have a common SEO pattern with Meta Title and Meta Description
+    const metaPattern = /meta\s*title\s*:?\s*["']?(.*?)(?=meta\s*description\s*:|\r|\n\r|\n\n|$)/i;
+    const metaMatch = text.match(metaPattern);
     
-    // Look for explicit title indicators - capture only until next punctuation or end of line
+    if (metaMatch && metaMatch[1]) {
+      // Clean up and validate the extracted title
+      const title = metaMatch[1].trim().replace(/["'\r\n]+$/, '').trim();
+      if (title.length > 5 && title.length < 200) {
+        return title;
+      }
+    }
+    
+    // Fall back to the original patterns if the SEO pattern doesn't match
     const metaTitleMatch = text.match(/meta\s*title\s*:?\s*["']?(.*?)(?:[.!?]|\r|\n|$)/i);
     if (metaTitleMatch && metaTitleMatch[1]) {
       const title = metaTitleMatch[1].trim();
@@ -327,7 +339,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
               placeholder="Enter content title"
             />
             <p className="text-xs text-neutral-500 mt-1">
-              This will be used as the meta title for title tag optimization analysis. The app will attempt to extract titles automatically from HTML files, URLs, and content that includes phrases like "Meta title:" or "Title:".
+              This will be used as the meta title for title tag optimization analysis. The app will automatically extract titles from HTML files, URLs, and content with SEO formatting (e.g., content between "Meta title:" and "Meta description:").
             </p>
           </div>
 
