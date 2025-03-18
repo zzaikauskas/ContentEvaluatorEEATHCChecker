@@ -127,10 +127,13 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
           const parser = new DOMParser();
           const doc = parser.parseFromString(text, 'text/html');
           
-          // First check if there's a <title> tag directly in the HTML code
-          const titleTagMatch = text.match(/<title[^>]*>(.*?)<\/title>/i);
+          // First check if there's a <title> tag directly in the HTML code - using non-greedy match
+          const titleTagMatch = text.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+          
           if (titleTagMatch && titleTagMatch[1]) {
-            const extractedTitle = titleTagMatch[1].trim();
+            // Clean up any whitespace or special characters
+            const extractedTitle = titleTagMatch[1].trim().replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ');
+            
             if (extractedTitle) {
               setTitle(extractedTitle);
               
@@ -140,12 +143,15 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
                 description: "The title has been automatically extracted from the HTML file.",
                 duration: 3000,
               });
+              
+              console.log('Title extracted from HTML tag:', extractedTitle);
             }
           } else {
             // If regex-based extraction fails, try with DOM parser as backup
             const docTitle = doc.querySelector('title');
             if (docTitle && docTitle.textContent) {
-              setTitle(docTitle.textContent.trim());
+              const parsedTitle = docTitle.textContent.trim();
+              setTitle(parsedTitle);
               
               // Show a toast notification about the extracted title
               toast({
@@ -153,6 +159,10 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
                 description: "The title has been automatically extracted from the HTML file.",
                 duration: 3000,
               });
+              
+              console.log('Title extracted via DOM parser:', parsedTitle);
+            } else {
+              console.log('No title tag found in HTML');
             }
           }
           
