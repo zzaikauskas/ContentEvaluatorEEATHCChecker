@@ -172,6 +172,24 @@ function parseHtmlForLinks(html: string): string[] {
     }
   }
   
+  // Additional Pattern: Capture links from <link> tags
+  const linkTagPattern = /<link\s+[^>]*?href\s*=\s*(["'])(.*?)\1[^>]*?>/gi;
+  let linkTagMatch;
+  
+  while ((linkTagMatch = linkTagPattern.exec(html)) !== null) {
+    if (linkTagMatch && linkTagMatch[2]) {
+      const href = linkTagMatch[2].trim();
+      
+      if (href.match(/^(https?:\/\/|www\.)/i)) {
+        const normalizedUrl = href.startsWith('www.') ? `http://${href}` : href;
+        if (!uniqueUrls[normalizedUrl]) {
+          uniqueUrls[normalizedUrl] = true;
+          links.push(normalizedUrl);
+        }
+      }
+    }
+  }
+  
   // Pattern 2: Alternative pattern for unquoted URLs (less common but still valid HTML)
   const unquotedHrefPattern = /<a\s+[^>]*?href\s*=\s*([^\s"'>]+)[^>]*?>/gi;
   let unquotedMatch;
@@ -203,6 +221,20 @@ function parseHtmlForLinks(html: string): string[] {
   while ((urlMatch = urlPattern.exec(html)) !== null) {
     if (urlMatch && urlMatch[0]) {
       const url = urlMatch[0].trim();
+      if (!uniqueUrls[url]) {
+        uniqueUrls[url] = true;
+        links.push(url);
+      }
+    }
+  }
+  
+  // Meta tag content links
+  const metaPattern = /<meta\s+[^>]*?(?:content|property|og:url)\s*=\s*(["'])(https?:\/\/.*?)\1[^>]*?>/gi;
+  let metaMatch;
+  
+  while ((metaMatch = metaPattern.exec(html)) !== null) {
+    if (metaMatch && metaMatch[2]) {
+      const url = metaMatch[2].trim();
       if (!uniqueUrls[url]) {
         uniqueUrls[url] = true;
         links.push(url);
@@ -351,30 +383,67 @@ export async function parseDocument(buffer: Buffer, filename: string): Promise<D
       // Special handling for HTML files to better extract links and title
       const htmlText = buffer.toString('utf-8');
       
-      // Try to extract title from HTML head
+      // Try to extract title from HTML head - using a broader regex to catch more title tag variations
       let htmlTitle = null;
-      const titleMatch = htmlText.match(/<title[^>]*>([^<]+)<\/title>/i);
+      const titleMatch = htmlText.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
       if (titleMatch && titleMatch[1]) {
-        htmlTitle = titleMatch[1].trim();
+        // Clean up the title - remove excess whitespace, newlines, and decode HTML entities
+        htmlTitle = titleMatch[1]
+          .trim()
+          .replace(/\s+/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'");
+        
         console.log("Title extracted from HTML tag:", htmlTitle);
       } else {
         console.log("No title tag found in HTML");
       }
       
-      // If no title found in head, fall back to first heading
+      // If no title found in head, check for Open Graph title
       if (!htmlTitle) {
-        const headingMatch = htmlText.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+        const ogTitleMatch = htmlText.match(/<meta\s+[^>]*?property\s*=\s*["']og:title["']\s+[^>]*?content\s*=\s*["'](.*?)["'][^>]*?>/i);
+        if (ogTitleMatch && ogTitleMatch[1]) {
+          htmlTitle = ogTitleMatch[1].trim();
+          console.log("Title extracted from Open Graph meta tag:", htmlTitle);
+        }
+      }
+      
+      // If still no title, fall back to first heading
+      if (!htmlTitle) {
+        const headingMatch = htmlText.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
         if (headingMatch && headingMatch[1]) {
-          htmlTitle = headingMatch[1].trim();
+          // Clean up HTML tags from inside the heading
+          htmlTitle = headingMatch[1]
+            .replace(/<[^>]*>/g, '')
+            .trim()
+            .replace(/\s+/g, ' ');
+          
           console.log("Title extracted from H1 tag:", htmlTitle);
         }
       }
+      
+      // Extract body content for analysis, not just raw HTML
+      let bodyContent = htmlText;
+      
+      // Try to get just the body content for better analysis
+      const bodyMatch = htmlText.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+      if (bodyMatch && bodyMatch[1]) {
+        bodyContent = bodyMatch[1];
+      }
+      
+      // Remove script and style tags to clean up content
+      bodyContent = bodyContent
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
       
       // Enhanced HTML link extraction
       const htmlLinks = parseHtmlForLinks(htmlText);
       
       return {
-        text: htmlText,
+        text: bodyContent,
         title: htmlTitle,
         links: htmlLinks
       };
