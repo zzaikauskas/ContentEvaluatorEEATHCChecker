@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { EvaluationRequest } from "@/lib/types";
+import { EvaluationRequest, LinkCheckResult } from "@/lib/types";
 import { ContentEvaluation } from "@shared/schema";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -29,10 +29,15 @@ interface OpenAIEvaluationResponse {
   recommendations: string[];
 }
 
+// Extended version of EvaluationRequest to include link check results
+interface EvaluationRequestWithLinks extends EvaluationRequest {
+  linkCheckResult?: LinkCheckResult | null;
+}
+
 export async function evaluateContent(
-  data: EvaluationRequest
+  data: EvaluationRequestWithLinks
 ): Promise<ContentEvaluation> {
-  const { content, title, keyword, apiKey } = data;
+  const { content, title, keyword, apiKey, linkCheckResult } = data;
 
   if (!apiKey) {
     throw new Error("OpenAI API key is required");

@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { evaluateContent } from "./lib/openai";
+import { checkLinks as checkContentLinks } from "./lib/linkChecker";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -15,7 +16,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: z.string().min(1, "Content is required"),
         title: z.string().optional(),
         keyword: z.string().optional(),
-        apiKey: z.string().min(1, "OpenAI API key is required")
+        apiKey: z.string().min(1, "OpenAI API key is required"),
+        checkLinks: z.boolean().optional()
       });
 
       const validationResult = schema.safeParse(req.body);
@@ -27,10 +29,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { content, title, keyword, apiKey } = validationResult.data;
+      const { content, title, keyword, apiKey, checkLinks } = validationResult.data;
+
+      // Check for broken links if requested
+      let linkCheckResult = null;
+      if (checkLinks === true) {
+        try {
+          console.log("Checking links in content...");
+          linkCheckResult = await checkLinks(content);
+          console.log(`Link check complete: Found ${linkCheckResult.totalLinks} links, ${linkCheckResult.brokenLinks} broken`);
+        } catch (error) {
+          console.error("Error checking links:", error);
+          // We'll continue with the evaluation even if link checking fails
+        }
+      }
 
       // Evaluate content using OpenAI
-      const evaluation = await evaluateContent({ content, title, keyword, apiKey });
+      const evaluation = await evaluateContent({ 
+        content, 
+        title, 
+        keyword, 
+        apiKey, 
+        checkLinks,
+        linkCheckResult 
+      });
       
       // Return evaluation result
       return res.status(200).json(evaluation);
