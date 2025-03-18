@@ -143,76 +143,71 @@ async function parseDocx(buffer: Buffer): Promise<DocumentParseResult> {
  * Extract links from text content
  */
 function extractLinksFromText(text: string): string[] {
-  // More comprehensive URL regex patterns
-  const patterns = [
-    // Standard http/https URLs
-    /(https?:\/\/[^\s()<>]+(?:\([^\s()<>]+\)|([^'\s()<>]+)+)?)/gi,
-    
-    // HTML href links - captures URLs within href attributes with various formats
-    /href\s*=\s*["']([^"']+)["']/gi,
-    
-    // URL in text with www but no protocol
-    /(www\.[^\s()<>]+(?:\([^\s()<>]+\)|([^'\s()<>]+)+)?)/gi,
-    
-    // Additional pattern for markdown links [text](url)
-    /\[([^\]]+)\]\(([^)]+)\)/gi
-  ];
-  
-  // For HTML content specifically, try to extract links from anchor tags
-  // Handle both double and single quotes in href attributes
-  const anchorTagPatterns = [
-    /<a\s+(?:[^>]*?\s+)?href="([^"]*)"(?:\s+[^>]*)?>(.*?)<\/a>/gi,  // Double quotes
-    /<a\s+(?:[^>]*?\s+)?href='([^']*)'(?:\s+[^>]*)?>(.*?)<\/a>/gi   // Single quotes
-  ];
-  
   const urls: string[] = [];
   
-  // Process each standard URL pattern
-  patterns.forEach(pattern => {
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      // Different patterns have the URL in different capture groups
-      // For href and markdown, it's in capture group 1, standard URLs it's in group 0
-      const url = match[1] || match[2] || match[0];
-      
-      // Add if it looks like a URL (has protocol or www)
-      if (url.match(/^(https?:\/\/|www\.)/i)) {
-        // Normalize URLs starting with www to have http:// prefix
-        const normalizedUrl = url.startsWith('www.') ? `http://${url}` : url;
+  // APPROACH 1: Extract href attributes from anchor tags
+  // This pattern prioritizes finding href attributes within anchor tags (<a>) but with flexible matching
+  // Supports unquoted attributes and malformed HTML
+  const anchorPattern = /<a[\s\S]*?href\s*=\s*(["']?)([^"'>\s]+)\1[\s\S]*?>[\s\S]*?<\/a>|<a[\s\S]*?href\s*=\s*(["'])(.*?)\3[\s\S]*?>[\s\S]*?<\/a>/gi;
+  let anchorMatch;
+  while ((anchorMatch = anchorPattern.exec(text)) !== null) {
+    // Match could be in group 2 (unquoted or single-quoted) or group 4 (quoted)
+    const href = (anchorMatch[2] || anchorMatch[4] || '').trim();
+    
+    if (href) {
+      // Only add fully qualified URLs
+      if (href.match(/^(https?:\/\/|www\.)/i)) {
+        const normalizedUrl = href.startsWith('www.') ? `http://${href}` : href;
         urls.push(normalizedUrl);
       }
-    }
-  });
-  
-  // Process HTML anchor tags specifically (handles complex HTML with attributes)
-  // Loop through each pattern for different quote styles
-  anchorTagPatterns.forEach(pattern => {
-    let anchorMatch;
-    while ((anchorMatch = pattern.exec(text)) !== null) {
-      if (anchorMatch && anchorMatch[1]) {
-        const href = anchorMatch[1].trim();
-        
-        // Add URLs that begin with http/https or www
-        if (href.match(/^(https?:\/\/|www\.)/i)) {
-          // Normalize URLs starting with www to have http:// prefix
-          const normalizedUrl = href.startsWith('www.') ? `http://${href}` : href;
-          urls.push(normalizedUrl);
-        }
-        // Also add absolute paths from the same domain
-        else if (href.startsWith('/') && !href.startsWith('//')) {
-          // For domain-relative URLs starting with a single slash, we'll include them too
-          urls.push(href);
-        }
+      // Add domain-relative URLs
+      else if (href.startsWith('/') && !href.startsWith('//')) {
+        urls.push(href);
       }
     }
-  });
+  }
+  
+  // APPROACH 2: Extract any remaining href attributes that might not be in valid anchor tags
+  const hrefPattern = /href\s*=\s*(["'])(.*?)\1/gi;
+  let hrefMatch;
+  while ((hrefMatch = hrefPattern.exec(text)) !== null) {
+    if (hrefMatch && hrefMatch[2]) {
+      const href = hrefMatch[2].trim();
+      
+      if (href.match(/^(https?:\/\/|www\.)/i)) {
+        const normalizedUrl = href.startsWith('www.') ? `http://${href}` : href;
+        urls.push(normalizedUrl);
+      }
+      else if (href.startsWith('/') && !href.startsWith('//')) {
+        urls.push(href);
+      }
+    }
+  }
+  
+  // APPROACH 3: Find URLs directly in text
+  const urlPattern = /(https?:\/\/[^\s()<>]+(?:\([^\s()<>]+\)|([^\s()<>]+))+)/gi;
+  let urlMatch;
+  while ((urlMatch = urlPattern.exec(text)) !== null) {
+    if (urlMatch && urlMatch[0]) {
+      urls.push(urlMatch[0]);
+    }
+  }
+  
+  // APPROACH 4: Find www URLs without protocol
+  const wwwPattern = /(www\.[^\s()<>]+(?:\([^\s()<>]+\)|([^\s()<>]+))+)/gi;
+  let wwwMatch;
+  while ((wwwMatch = wwwPattern.exec(text)) !== null) {
+    if (wwwMatch && wwwMatch[0]) {
+      urls.push(`http://${wwwMatch[0]}`);
+    }
+  }
   
   // Clean up URLs - remove trailing punctuation and closing brackets
   const cleanedUrls = urls.map(url => 
     url.replace(/[,.!?;:'")\]]+$/, '').trim()
   );
   
-  // Remove duplicates and empty URLs using an object as a map
+  // Remove duplicates and empty URLs
   const uniqueUrls: Record<string, boolean> = {};
   const result: string[] = [];
   
@@ -277,13 +272,44 @@ export async function parseDocument(buffer: Buffer, filename: string): Promise<D
         }
       }
       
-      // Extract links with our enhanced function
-      const htmlLinks = extractLinksFromText(htmlText);
+      // For HTML content, we'll add an additional special case search 
+      // specifically for <a href="..."> tags
+      const directAnchorTagMatches: string[] = [];
+      const anchorTagRegex = /<a\s+[^>]*href\s*=\s*(['"])(.*?)\1[^>]*>[\s\S]*?<\/a>/gi;
+      let directMatch;
+      
+      while ((directMatch = anchorTagRegex.exec(htmlText)) !== null) {
+        if (directMatch && directMatch[2]) {
+          const href = directMatch[2].trim();
+          
+          if (href.match(/^(https?:\/\/|www\.)/i)) {
+            const normalizedUrl = href.startsWith('www.') ? `http://${href}` : href;
+            directAnchorTagMatches.push(normalizedUrl);
+          }
+          else if (href.startsWith('/') && !href.startsWith('//')) {
+            directAnchorTagMatches.push(href);
+          }
+        }
+      }
+      
+      // Also extract with our general function
+      const generalLinks = extractLinksFromText(htmlText);
+      
+      // Combine both approaches, removing duplicates
+      const uniqueLinksMap: Record<string, boolean> = {};
+      const combinedLinks: string[] = [];
+      
+      [...directAnchorTagMatches, ...generalLinks].forEach(url => {
+        if (!uniqueLinksMap[url]) {
+          uniqueLinksMap[url] = true;
+          combinedLinks.push(url);
+        }
+      });
       
       return {
         text: htmlText,
         title: htmlTitle,
-        links: htmlLinks
+        links: combinedLinks
       };
     default:
       // For plain text or other file types, just convert the buffer to string
