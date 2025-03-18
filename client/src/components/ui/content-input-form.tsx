@@ -36,7 +36,30 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
     setContent(text);
     setCharCount(text.length);
     
-    // Try to extract title from content if no title is provided
+    // Check if we're working with HTML content
+    const isHtmlContent = text.trim().toLowerCase().startsWith('<!doctype html>') || 
+                          text.trim().toLowerCase().startsWith('<html') ||
+                          (text.includes('<head>') && text.includes('<body>'));
+    
+    // For HTML content, we'll prioritize title tag extraction
+    if (isHtmlContent) {
+      const titleTagMatch = text.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+      if (titleTagMatch && titleTagMatch[1]) {
+        const extractedTitle = titleTagMatch[1].trim().replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ');
+        if (extractedTitle && !title.trim()) {
+          setTitle(extractedTitle);
+          toast({
+            title: "Title extracted",
+            description: "Title has been automatically extracted from HTML content.",
+            duration: 3000,
+          });
+          console.log('HTML title extracted from pasted content:', extractedTitle);
+          return;
+        }
+      }
+    }
+    
+    // For non-HTML content or if no HTML title found, try to extract title from content
     if (!title.trim()) {
       const extractedTitle = extractTitleFromContent(text);
       if (extractedTitle) {
@@ -127,6 +150,9 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
           const parser = new DOMParser();
           const doc = parser.parseFromString(text, 'text/html');
           
+          // Track if we found a title to prevent later extraction from overriding it
+          let titleFound = false;
+          
           // First check if there's a <title> tag directly in the HTML code - using non-greedy match
           const titleTagMatch = text.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
           
@@ -136,6 +162,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
             
             if (extractedTitle) {
               setTitle(extractedTitle);
+              titleFound = true;
               
               // Show a toast notification about the extracted title
               toast({
@@ -152,6 +179,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
             if (docTitle && docTitle.textContent) {
               const parsedTitle = docTitle.textContent.trim();
               setTitle(parsedTitle);
+              titleFound = true;
               
               // Show a toast notification about the extracted title
               toast({
@@ -178,6 +206,13 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
           
           // Clean up the text
           text = text.trim().replace(/\s+/g, ' ');
+          
+          // Store the title found flag in state
+          if (titleFound) {
+            // Set a flag in local storage to prevent content-based extraction
+            localStorage.setItem('html_title_extracted', 'true');
+          }
+          
         } catch (error) {
           console.error('Error parsing HTML:', error);
           // If HTML parsing fails, just use the raw text
@@ -189,8 +224,11 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
         }
       }
       
-      // Also try to extract title from the content if none was found yet
-      if (!title.trim()) {
+      // Check if we already extracted a title from HTML
+      const htmlTitleExtracted = localStorage.getItem('html_title_extracted') === 'true';
+      
+      // Only try content extraction if we didn't find a title in HTML
+      if (!htmlTitleExtracted && !title.trim()) {
         const extractedTitle = extractTitleFromContent(text);
         if (extractedTitle) {
           setTitle(extractedTitle);
@@ -201,6 +239,9 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
           });
         }
       }
+      
+      // Clear the flag for next time
+      localStorage.removeItem('html_title_extracted');
       
       setContent(text);
       setCharCount(text.length);
