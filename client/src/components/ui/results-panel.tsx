@@ -1,7 +1,7 @@
 import { EvaluationState } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, FileDown, Save, Plus } from "lucide-react";
+import { AlertCircle, FileDown, Save, RefreshCw } from "lucide-react";
 import OverallScoreCard from "@/components/ui/overall-score-card";
 import EEATScoreCard from "@/components/ui/eeat-score-card";
 import HelpfulContentCard from "@/components/ui/helpful-content-card";
@@ -188,7 +188,7 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
             className="flex items-center gap-2"
             onClick={resetEvaluation}
           >
-            <Plus className="h-5 w-5" />
+            <RefreshCw className="h-5 w-5" />
             New Evaluation
           </Button>
         </div>

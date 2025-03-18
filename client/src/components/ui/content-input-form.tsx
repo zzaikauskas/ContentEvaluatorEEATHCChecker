@@ -216,6 +216,27 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
   const handleBrowseFiles = () => {
     fileInputRef.current?.click();
   };
+  
+  // Function to reset all form fields
+  const handleReset = () => {
+    setTitle("");
+    setContent("");
+    setKeyword("");
+    setUrl("");
+    setCharCount(0);
+    // Don't clear API key as it's likely to be reused
+    
+    // Clear file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    
+    toast({
+      title: "Form reset",
+      description: "All form fields have been cleared. You can now start a new evaluation.",
+      duration: 3000,
+    });
+  };
 
   return (
     <Card>
@@ -367,14 +388,40 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
             </p>
           </div>
           
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? "Evaluating..." : "Evaluate Content"}
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex flex-col space-y-3">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? "Evaluating..." : "Evaluate Content"}
+            </Button>
+            
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2"
+              onClick={handleReset}
+              disabled={isLoading}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Reset Form
+            </Button>
+          </div>
         </form>
         
         {/* Info Section */}
