@@ -5,6 +5,21 @@ export interface EvaluationRequest {
   content: string;
   keyword?: string;
   apiKey: string;
+  checkLinks?: boolean;
+}
+
+export interface LinkStatus {
+  url: string;
+  status: number | null;
+  ok: boolean;
+  error?: string;
+}
+
+export interface LinkCheckResult {
+  links: LinkStatus[];
+  totalLinks: number;
+  brokenLinks: number;
+  workingLinks: number;
 }
 
 export interface EvaluationResponse extends ContentEvaluation {}

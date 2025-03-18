@@ -47,6 +47,11 @@ export const contentEvaluations = pgTable("content_evaluations", {
   improvements: json("improvements").notNull(),
   recommendations: json("recommendations").notNull(),
   summary: text("summary").notNull(),
+  // Link checking fields
+  totalLinks: integer("total_links"),
+  brokenLinks: integer("broken_links"),
+  workingLinks: integer("working_links"),
+  linkDetails: json("link_details"),
 });
 
 export const insertContentEvaluationSchema = createInsertSchema(contentEvaluations).omit({
