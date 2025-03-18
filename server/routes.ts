@@ -93,7 +93,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           console.log("Checking links in content...");
           linkCheckResult = await checkContentLinks(content);
-          console.log(`Link check complete: Found ${linkCheckResult.totalLinks} links, ${linkCheckResult.brokenLinks} broken`);
+          const workingWithConditions = linkCheckResult.links.filter(l => 
+            l.ok && (l.status === 403 || l.status === 405)).length;
+          
+          console.log(`Link check complete: Found ${linkCheckResult.totalLinks} links, ${linkCheckResult.brokenLinks} broken, ${workingWithConditions} working with security restrictions`);
         } catch (error) {
           console.error("Error checking links:", error);
           // We'll continue with the evaluation even if link checking fails

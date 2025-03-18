@@ -97,7 +97,7 @@ const LinkCheckCard = ({
                         {link.ok ? (
                           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center justify-center gap-1">
                             <CheckCircle className="h-3 w-3" />
-                            {link.status || "OK"}
+                            {link.status === 403 || link.status === 405 ? "OK*" : (link.status || "OK")}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 flex items-center justify-center gap-1">
@@ -113,6 +113,9 @@ const LinkCheckCard = ({
             </div>
             <p className="text-xs text-neutral-500 mt-2">
               Tip: Fix broken links to improve your content's trustworthiness and user experience.
+            </p>
+            <p className="text-xs text-neutral-500 mt-1">
+              <strong>Note:</strong> Links marked with "OK*" have 403 or 405 status codes but are likely working pages that restrict automated access.
             </p>
           </div>
         )}

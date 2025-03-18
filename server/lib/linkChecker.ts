@@ -70,21 +70,53 @@ async function checkLinkStatus(url: string): Promise<LinkStatus> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     
-    const response = await fetch(cleanUrl, {
-      method: 'HEAD', // Using HEAD request to avoid downloading entire content
-      redirect: 'follow', // Follow redirects
+    // First try HEAD request (faster, no content download)
+    let response = await fetch(cleanUrl, {
+      method: 'HEAD',
+      redirect: 'follow',
       signal: controller.signal,
       headers: {
-        'User-Agent': 'Mozilla/5.0 Content-Evaluation-Tool'
+        'User-Agent': 'Mozilla/5.0 (compatible; ContentEvaluator/1.0)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5'
       }
     });
+    
+    // If status is 403 or 405 (Method Not Allowed), sites might block HEAD but allow GET
+    if (response.status === 403 || response.status === 405) {
+      // Create a new AbortController for the GET request
+      const getController = new AbortController();
+      const getTimeoutId = setTimeout(() => getController.abort(), 5000);
+      
+      try {
+        // Fallback to GET with a stream to avoid downloading entire content
+        response = await fetch(cleanUrl, {
+          method: 'GET',
+          redirect: 'follow',
+          signal: getController.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ContentEvaluator/1.0)',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5'
+          }
+        });
+        
+        // No need to download the body content, we just needed the status
+        // The body will be garbage collected when the response goes out of scope
+        
+        clearTimeout(getTimeoutId);
+      } catch (getError) {
+        clearTimeout(getTimeoutId);
+        // If GET also fails, return the original HEAD response
+      }
+    }
     
     clearTimeout(timeoutId);
 
     return {
       url: cleanUrl,
       status: response.status,
-      ok: response.ok
+      ok: response.ok || response.status === 403 || response.status === 405 // Consider these as "ok" for content evaluation purposes
     };
   } catch (error) {
     // Handle network errors and timeouts
