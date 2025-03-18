@@ -1,4 +1,4 @@
-import { EvaluationState } from "@/lib/types";
+import { EvaluationState, LinkStatus } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, FileDown, Save, RefreshCw } from "lucide-react";
@@ -8,6 +8,7 @@ import HelpfulContentCard from "@/components/ui/helpful-content-card";
 import DetailedAnalysisCard from "@/components/ui/detailed-analysis-card";
 import ContentPreviewCard from "@/components/ui/content-preview-card";
 import MetaTitleCard from "@/components/ui/meta-title-card";
+import LinkCheckCard from "@/components/ui/link-check-card";
 
 interface ResultsPanelProps {
   evaluationState: EvaluationState;
@@ -150,6 +151,16 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
             keyword={result.keyword}
             keywordInTitle={result.keywordInTitle || 0}
             keywordAtBeginning={result.keywordAtBeginning || 0}
+          />
+        )}
+        
+        {/* Link Check Analysis - only displayed if link check was performed */}
+        {result.totalLinks && result.totalLinks > 0 && (
+          <LinkCheckCard
+            totalLinks={result.totalLinks}
+            brokenLinks={result.brokenLinks || 0}
+            workingLinks={result.workingLinks || 0}
+            linkDetails={result.linkDetails as LinkStatus[] || []}
           />
         )}
         

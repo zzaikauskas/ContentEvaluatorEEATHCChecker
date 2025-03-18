@@ -334,6 +334,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
         title: title || undefined,
         keyword: keyword || undefined,
         apiKey,
+        checkLinks: checkLinks || undefined,
       };
 
       const response = await apiRequest("POST", "/api/evaluate", requestData);
@@ -371,6 +372,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
     setKeyword("");
     setUrl("");
     setCharCount(0);
+    setCheckLinks(false);
     // Don't clear API key as it's likely to be reused
     
     // Clear file input
@@ -508,6 +510,25 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
             </div>
           )}
           
+          {/* Link Checking Option */}
+          <div className="mb-4">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="check-links"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                checked={checkLinks}
+                onChange={(e) => setCheckLinks(e.target.checked)}
+              />
+              <label htmlFor="check-links" className="ml-2 text-sm font-medium text-neutral-600">
+                Check for broken links
+              </label>
+            </div>
+            <p className="text-xs text-neutral-500 mt-1 ml-6">
+              This will scan your content for hyperlinks and verify if they are working
+            </p>
+          </div>
+
           {/* OpenAI API Key */}
           <div className="mb-6">
             <label htmlFor="api-key" className="block text-sm font-medium text-neutral-600 mb-1">

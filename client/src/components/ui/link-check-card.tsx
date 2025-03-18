@@ -1,31 +1,7 @@
-import React, { useState } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { LinkStatus } from "@/lib/types";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
-  ChevronDown, 
-  ChevronUp,
-  ExternalLink
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { LinkStatus } from "@/lib/types";
+import { AlertCircle, CheckCircle, ExternalLink, Link2 } from "lucide-react";
 
 interface LinkCheckCardProps {
   totalLinks: number;
@@ -34,153 +10,110 @@ interface LinkCheckCardProps {
   linkDetails: LinkStatus[];
 }
 
-const LinkCheckCard = ({ 
-  totalLinks, 
-  brokenLinks, 
-  workingLinks, 
-  linkDetails 
+const LinkCheckCard = ({
+  totalLinks,
+  brokenLinks,
+  workingLinks,
+  linkDetails
 }: LinkCheckCardProps) => {
-  const [expanded, setExpanded] = useState(false);
-
-  // No links found
-  if (totalLinks === 0) {
-    return (
-      <Card className="mt-6">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Link Analysis</CardTitle>
-          <CardDescription>No links were found in the content</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center text-center text-neutral-500 py-6">
-            <p>No hyperlinks were detected in the content. Consider adding relevant links to improve the content's usefulness.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+  if (!totalLinks || totalLinks === 0) {
+    return null; // Don't show the card if there are no links
   }
 
-  // Get the percentage of working links
+  // Calculate percentage of working links
   const workingPercentage = totalLinks > 0 ? Math.round((workingLinks / totalLinks) * 100) : 0;
 
-  // Determine the status color based on percentage of working links
-  let statusColor = "bg-red-500";
-  let statusText = "Poor";
-  let statusIcon = <XCircle className="h-5 w-5 mr-1" />;
-
-  if (workingPercentage >= 90) {
-    statusColor = "bg-green-500";
-    statusText = "Excellent";
-    statusIcon = <CheckCircle className="h-5 w-5 mr-1" />;
-  } else if (workingPercentage >= 75) {
+  // Determine status color based on the percentage of working links
+  let statusColor = "bg-green-500";
+  if (workingPercentage < 70) {
+    statusColor = "bg-red-500";
+  } else if (workingPercentage < 90) {
     statusColor = "bg-yellow-500";
-    statusText = "Good";
-    statusIcon = <AlertTriangle className="h-5 w-5 mr-1" />;
-  } else if (workingPercentage >= 50) {
-    statusColor = "bg-orange-500";
-    statusText = "Fair";
-    statusIcon = <AlertTriangle className="h-5 w-5 mr-1" />;
   }
 
   return (
-    <Card className="mt-6">
+    <Card className="mb-6">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Link Analysis</CardTitle>
-        <CardDescription>Assessment of hyperlinks in the content</CardDescription>
+        <CardTitle className="text-xl flex items-center gap-2">
+          <Link2 className="h-5 w-5" />
+          Link Analysis
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="bg-neutral-50 rounded-lg p-4 mb-4">
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center">
-              <span className="text-lg font-semibold mr-2">Link Health:</span>
-              <div className="flex items-center">
-                {statusIcon}
-                <span className="font-semibold">{statusText}</span>
-              </div>
-            </div>
-            <Badge variant="outline" className={cn("px-2 py-1", statusColor, "text-white")}>
-              {workingPercentage}% Working
-            </Badge>
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Link Health</span>
+            <span className="text-sm font-medium">{workingPercentage}%</span>
           </div>
-          
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+            <div 
+              className={`h-2.5 rounded-full ${statusColor}`}
+              style={{ width: `${workingPercentage}%` }}
+            ></div>
+          </div>
           <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="bg-white p-3 rounded-md shadow-sm">
-              <p className="text-sm text-neutral-600">Total Links</p>
-              <p className="text-2xl font-bold">{totalLinks}</p>
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <p className="text-lg font-bold text-neutral-700">{totalLinks}</p>
+              <p className="text-xs text-neutral-600">Total Links</p>
             </div>
-            <div className="bg-white p-3 rounded-md shadow-sm">
-              <p className="text-sm text-neutral-600">Working Links</p>
-              <p className="text-2xl font-bold text-green-600">{workingLinks}</p>
+            <div className="p-3 bg-green-50 rounded-lg">
+              <p className="text-lg font-bold text-green-700">{workingLinks}</p>
+              <p className="text-xs text-neutral-600">Working Links</p>
             </div>
-            <div className="bg-white p-3 rounded-md shadow-sm">
-              <p className="text-sm text-neutral-600">Broken Links</p>
-              <p className="text-2xl font-bold text-red-600">{brokenLinks}</p>
+            <div className="p-3 bg-red-50 rounded-lg">
+              <p className="text-lg font-bold text-red-700">{brokenLinks}</p>
+              <p className="text-xs text-neutral-600">Broken Links</p>
             </div>
           </div>
         </div>
 
-        <div className="mt-4">
-          <Button 
-            variant="outline" 
-            onClick={() => setExpanded(!expanded)}
-            className="w-full flex items-center justify-between"
-          >
-            <span>View {linkDetails.length} Links</span>
-            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        </div>
-
-        {expanded && (
-          <div className="mt-4 border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Status</TableHead>
-                  <TableHead>URL</TableHead>
-                  <TableHead>Response</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {linkDetails.map((link, index) => (
-                  <TableRow key={index}>
-                    <TableCell>
-                      {link.ok ? (
-                        <span className="flex items-center text-green-600">
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          OK
-                        </span>
-                      ) : (
-                        <span className="flex items-center text-red-600">
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Error
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline flex items-center"
-                      >
-                        <span className="truncate">{link.url}</span>
-                        <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
-                      </a>
-                    </TableCell>
-                    <TableCell>
-                      {link.status ? (
-                        <Badge variant={link.ok ? "outline" : "destructive"}>
-                          {link.status}
-                        </Badge>
-                      ) : (
-                        <span className="text-sm text-neutral-600">
-                          {link.error || "Connection failed"}
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        {/* Link Details */}
+        {linkDetails && linkDetails.length > 0 && (
+          <div>
+            <h3 className="text-sm font-medium mb-2">Link Details</h3>
+            <div className="max-h-64 overflow-y-auto border rounded-lg">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">URL</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider w-24">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {linkDetails.map((link, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-3 py-2 whitespace-nowrap text-neutral-700 truncate max-w-xs">
+                        <a 
+                          href={link.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center hover:text-blue-600"
+                        >
+                          <span className="truncate">{link.url}</span>
+                          <ExternalLink className="h-3 w-3 ml-1 shrink-0" />
+                        </a>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-right">
+                        {link.ok ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center justify-center gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            {link.status || "OK"}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 flex items-center justify-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {link.status || "Error"}
+                          </Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-neutral-500 mt-2">
+              Tip: Fix broken links to improve your content's trustworthiness and user experience.
+            </p>
           </div>
         )}
       </CardContent>
