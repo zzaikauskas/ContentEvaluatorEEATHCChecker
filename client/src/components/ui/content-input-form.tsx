@@ -54,21 +54,31 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
   const extractTitleFromContent = (text: string): string | null => {
     if (!text.trim()) return null;
     
-    // Look for explicit title indicators
-    const metaTitleMatch = text.match(/meta\s*title\s*:?\s*["']?([^"'\r\n]+)["']?/i);
+    // Look for explicit title indicators - capture only until next punctuation or end of line
+    const metaTitleMatch = text.match(/meta\s*title\s*:?\s*["']?(.*?)(?:[.!?]|\r|\n|$)/i);
     if (metaTitleMatch && metaTitleMatch[1]) {
-      return metaTitleMatch[1].trim();
+      const title = metaTitleMatch[1].trim();
+      if (title.length > 5 && title.length < 200) {
+        return title;
+      }
     }
     
-    const titleMatch = text.match(/title\s*:?\s*["']?([^"'\r\n]+)["']?/i);
+    const titleMatch = text.match(/title\s*:?\s*["']?(.*?)(?:[.!?]|\r|\n|$)/i);
     if (titleMatch && titleMatch[1]) {
-      return titleMatch[1].trim();
+      const title = titleMatch[1].trim();
+      if (title.length > 5 && title.length < 200) {
+        return title;
+      }
     }
     
     // Look for heading-like structures
-    const headingMatch = text.match(/^\s*#+\s*([^\r\n]+)/m) || text.match(/^\s*==+\s*([^\r\n]+)\s*==+/m);
+    const headingMatch = text.match(/^\s*#+\s*(.*?)(?:[.!?]|\r|\n|$)/m) || 
+                         text.match(/^\s*==+\s*(.*?)(?:[.!?]|\r|\n|$)\s*==+/m);
     if (headingMatch && headingMatch[1]) {
-      return headingMatch[1].trim();
+      const title = headingMatch[1].trim();
+      if (title.length > 5 && title.length < 200) {
+        return title;
+      }
     }
     
     // If nothing else, use the first non-empty line if it's reasonably short (likely a title)
