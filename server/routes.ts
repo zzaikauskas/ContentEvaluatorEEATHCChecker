@@ -14,6 +14,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const schema = z.object({
         content: z.string().min(1, "Content is required"),
         title: z.string().optional(),
+        keyword: z.string().optional(),
         apiKey: z.string().min(1, "OpenAI API key is required")
       });
 
@@ -26,10 +27,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { content, title, apiKey } = validationResult.data;
+      const { content, title, keyword, apiKey } = validationResult.data;
 
       // Evaluate content using OpenAI
-      const evaluation = await evaluateContent({ content, title, apiKey });
+      const evaluation = await evaluateContent({ content, title, keyword, apiKey });
       
       // Return evaluation result
       return res.status(200).json(evaluation);

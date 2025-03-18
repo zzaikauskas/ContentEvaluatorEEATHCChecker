@@ -32,7 +32,7 @@ interface OpenAIEvaluationResponse {
 export async function evaluateContent(
   data: EvaluationRequest
 ): Promise<ContentEvaluation> {
-  const { content, title, apiKey } = data;
+  const { content, title, keyword, apiKey } = data;
 
   if (!apiKey) {
     throw new Error("OpenAI API key is required");
@@ -102,11 +102,34 @@ Respond in the following JSON format:
 
     const evaluation = JSON.parse(responseContent) as OpenAIEvaluationResponse;
 
+    // Process meta title keyword analysis if both title and keyword are provided
+    let keywordInTitle = 0;
+    let keywordAtBeginning = 0;
+    
+    if (title && keyword && keyword.trim() !== '') {
+      const titleLower = title.toLowerCase();
+      const keywordLower = keyword.toLowerCase();
+      
+      // Check if keyword is in the title
+      if (titleLower.includes(keywordLower)) {
+        keywordInTitle = 1;
+        
+        // Check if keyword is at the beginning (first 10 characters)
+        const keywordPosition = titleLower.indexOf(keywordLower);
+        if (keywordPosition <= 10) {
+          keywordAtBeginning = 1;
+        }
+      }
+    }
+    
     // Transform to match our database schema
     return {
       id: 0, // Will be assigned by database
       title: title || "Untitled content",
       content,
+      keyword: keyword || undefined,
+      keywordInTitle,
+      keywordAtBeginning,
       createdAt: new Date(),
       overallScore: evaluation.overallScore,
       experienceScore: evaluation.experienceScore,

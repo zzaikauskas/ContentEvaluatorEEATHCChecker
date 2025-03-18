@@ -8,8 +8,8 @@ import { CheckCircle2, XCircle } from "lucide-react";
 interface MetaTitleCardProps {
   title?: string;
   keyword?: string;
-  keywordInTitle: number;
-  keywordAtBeginning: number;
+  keywordInTitle: number | null;
+  keywordAtBeginning: number | null;
 }
 
 const MetaTitleCard = ({ 

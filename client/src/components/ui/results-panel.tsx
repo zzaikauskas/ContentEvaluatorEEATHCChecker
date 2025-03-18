@@ -143,6 +143,16 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
           />
         </div>
         
+        {/* Meta Title Optimization Check - only displayed if keyword is present */}
+        {result.keyword && result.title && (
+          <MetaTitleCard
+            title={result.title}
+            keyword={result.keyword}
+            keywordInTitle={result.keywordInTitle || 0}
+            keywordAtBeginning={result.keywordAtBeginning || 0}
+          />
+        )}
+        
         {/* Detailed Analysis */}
         <DetailedAnalysisCard 
           strengths={result.strengths as string[]}
