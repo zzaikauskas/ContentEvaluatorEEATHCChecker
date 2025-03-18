@@ -78,31 +78,37 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
   const extractTitleFromContent = (text: string): string | null => {
     if (!text.trim()) return null;
 
-    // First, check if we have a common SEO pattern with Meta Title and Meta Description
-    const metaPattern = /meta\s*title\s*:?\s*["']?(.*?)(?=meta\s*description\s*:|\r|\n\r|\n\n|$)/i;
+    // Try multiple pattern variations to find Meta Title
+    
+    // First, check stronger pattern with Meta Title/Description pair (common SEO pattern)
+    const metaPattern = /(?:meta|page|post)\s+title\s*:?\s*["']?(.*?)(?=(?:meta|page|post)\s+description\s*:|\r|\n\r|\n\n|$)/i;
     const metaMatch = text.match(metaPattern);
     
     if (metaMatch && metaMatch[1]) {
       // Clean up and validate the extracted title
       const title = metaMatch[1].trim().replace(/["'\r\n]+$/, '').trim();
       if (title.length > 5 && title.length < 200) {
+        console.log('Title extracted from Meta Title/Description pattern:', title);
         return title;
       }
     }
     
-    // Fall back to the original patterns if the SEO pattern doesn't match
-    const metaTitleMatch = text.match(/meta\s*title\s*:?\s*["']?(.*?)(?:[.!?]|\r|\n|$)/i);
+    // Look for standalone Meta title pattern
+    const metaTitleMatch = text.match(/(?:meta|page|post)\s+title\s*:?\s*["']?(.*?)(?:[.!?]|\r|\n|$)/i);
     if (metaTitleMatch && metaTitleMatch[1]) {
-      const title = metaTitleMatch[1].trim();
+      const title = metaTitleMatch[1].trim().replace(/["'\r\n]+$/, '').trim();
       if (title.length > 5 && title.length < 200) {
+        console.log('Title extracted from Meta title pattern:', title);
         return title;
       }
     }
     
+    // Try a more general title pattern
     const titleMatch = text.match(/title\s*:?\s*["']?(.*?)(?:[.!?]|\r|\n|$)/i);
     if (titleMatch && titleMatch[1]) {
-      const title = titleMatch[1].trim();
+      const title = titleMatch[1].trim().replace(/["'\r\n]+$/, '').trim();
       if (title.length > 5 && title.length < 200) {
+        console.log('Title extracted from general title pattern:', title);
         return title;
       }
     }

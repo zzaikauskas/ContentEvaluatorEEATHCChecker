@@ -411,6 +411,37 @@ export async function parseDocument(buffer: Buffer, filename: string): Promise<D
         }
       }
       
+      // Check for Meta title pattern in content - this can appear in various forms
+      if (!htmlTitle) {
+        // First try stronger, more specific Meta title pattern
+        const metaTitlePattern = /(?:meta|page|post)\s+title\s*:?\s*(.*?)(?:[\r\n]|<\/|(?:meta|page)\s+description|$)/i;
+        const metaTitleMatch = htmlText.match(metaTitlePattern);
+        
+        if (metaTitleMatch && metaTitleMatch[1]) {
+          htmlTitle = metaTitleMatch[1]
+            .replace(/<[^>]*>/g, '')
+            .trim()
+            .replace(/\s+/g, ' ');
+          
+          console.log("Title extracted from Meta title pattern:", htmlTitle);
+        }
+        
+        // If that doesn't work, try looser pattern that's just looking for title: anywhere in text
+        if (!htmlTitle) {
+          const looseTitlePattern = /(?:^|\n|\r|>)\s*title\s*:?\s*(.*?)(?:[.!?]|$|\n|\r|<)/i;
+          const looseTitleMatch = htmlText.match(looseTitlePattern);
+          
+          if (looseTitleMatch && looseTitleMatch[1]) {
+            htmlTitle = looseTitleMatch[1]
+              .replace(/<[^>]*>/g, '')
+              .trim()
+              .replace(/\s+/g, ' ');
+            
+            console.log("Title extracted from loose title pattern:", htmlTitle);
+          }
+        }
+      }
+      
       // If still no title, fall back to first heading
       if (!htmlTitle) {
         const headingMatch = htmlText.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
