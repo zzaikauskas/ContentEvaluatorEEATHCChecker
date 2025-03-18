@@ -143,16 +143,57 @@ async function parseDocx(buffer: Buffer): Promise<DocumentParseResult> {
  * Extract links from text content
  */
 function extractLinksFromText(text: string): string[] {
-  // URL regex pattern
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  // More comprehensive URL regex patterns
+  const patterns = [
+    // Standard http/https URLs
+    /(https?:\/\/[^\s()<>]+(?:\([^\s()<>]+\)|([^'\s()<>]+)+)?)/gi,
+    
+    // HTML href links - captures URLs within href attributes
+    /href\s*=\s*["']([^"']+)["']/gi,
+    
+    // URL in text with www but no protocol
+    /(www\.[^\s()<>]+(?:\([^\s()<>]+\)|([^'\s()<>]+)+)?)/gi,
+    
+    // Additional pattern for markdown links [text](url)
+    /\[([^\]]+)\]\(([^)]+)\)/gi
+  ];
   
-  // Find all matches
-  const matches = text.match(urlRegex) || [];
+  const urls: string[] = [];
   
-  // Remove any trailing punctuation or closing parentheses
-  return matches
-    .map(url => url.replace(/[,.!?;:'")\]]+$/, ''))
-    .filter((url, index, self) => self.indexOf(url) === index); // Remove duplicates
+  // Process each pattern
+  patterns.forEach(pattern => {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      // Different patterns have the URL in different capture groups
+      // For href and markdown, it's in capture group 1, standard URLs it's in group 0
+      const url = match[1] || match[2] || match[0];
+      
+      // Add if it looks like a URL (has protocol or www)
+      if (url.match(/^(https?:\/\/|www\.)/i)) {
+        // Normalize URLs starting with www to have http:// prefix
+        const normalizedUrl = url.startsWith('www.') ? `http://${url}` : url;
+        urls.push(normalizedUrl);
+      }
+    }
+  });
+  
+  // Clean up URLs - remove trailing punctuation and closing brackets
+  const cleanedUrls = urls.map(url => 
+    url.replace(/[,.!?;:'")\]]+$/, '').trim()
+  );
+  
+  // Remove duplicates and empty URLs using an object as a map
+  const uniqueUrls: Record<string, boolean> = {};
+  const result: string[] = [];
+  
+  for (const url of cleanedUrls) {
+    if (url.length > 0 && !uniqueUrls[url]) {
+      uniqueUrls[url] = true;
+      result.push(url);
+    }
+  }
+  
+  return result;
 }
 
 /**
@@ -186,8 +227,36 @@ export async function parseDocument(buffer: Buffer, filename: string): Promise<D
     case '.docx':
     case '.doc':
       return parseDocx(buffer);
+    case '.html':
+    case '.htm':
+      // Special handling for HTML files to better extract links and title
+      const htmlText = buffer.toString('utf-8');
+      
+      // Try to extract title from HTML head
+      let htmlTitle = null;
+      const titleMatch = htmlText.match(/<title[^>]*>([^<]+)<\/title>/i);
+      if (titleMatch && titleMatch[1]) {
+        htmlTitle = titleMatch[1].trim();
+      }
+      
+      // If no title found in head, fall back to first heading
+      if (!htmlTitle) {
+        const headingMatch = htmlText.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+        if (headingMatch && headingMatch[1]) {
+          htmlTitle = headingMatch[1].trim();
+        }
+      }
+      
+      // Extract links with our enhanced function
+      const htmlLinks = extractLinksFromText(htmlText);
+      
+      return {
+        text: htmlText,
+        title: htmlTitle,
+        links: htmlLinks
+      };
     default:
-      // For plain text or HTML, just convert the buffer to string
+      // For plain text or other file types, just convert the buffer to string
       const text = buffer.toString('utf-8');
       const lines = text.split('\n').filter(line => line.trim().length > 0);
       const potentialTitle = lines.length > 0 ? lines[0].trim() : null;
