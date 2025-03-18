@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import * as mammoth from 'mammoth';
+import { JSDOM } from 'jsdom';
 
 export interface DocumentParseResult {
   text: string;
@@ -413,17 +414,33 @@ export async function parseDocument(buffer: Buffer, filename: string): Promise<D
       
       // Check for Meta title pattern in content - this can appear in various forms
       if (!htmlTitle) {
-        // First try stronger, more specific Meta title pattern
-        const metaTitlePattern = /(?:meta|page|post)\s+title\s*:?\s*(.*?)(?:[\r\n]|<\/|(?:meta|page)\s+description|$)/i;
-        const metaTitleMatch = htmlText.match(metaTitlePattern);
+        // First look for the exact pattern "Meta title:" followed by text, which is common in SEO content
+        const exactMetaTitlePattern = /Meta\s+title\s*:([^.!?\r\n<]+)/i;
+        const exactMetaTitleMatch = htmlText.match(exactMetaTitlePattern);
         
-        if (metaTitleMatch && metaTitleMatch[1]) {
-          htmlTitle = metaTitleMatch[1]
+        if (exactMetaTitleMatch && exactMetaTitleMatch[1]) {
+          htmlTitle = exactMetaTitleMatch[1]
             .replace(/<[^>]*>/g, '')
             .trim()
-            .replace(/\s+/g, ' ');
+            .replace(/\s+/g, ' ')
+            .replace(/&nbsp;/g, ' ');
           
-          console.log("Title extracted from Meta title pattern:", htmlTitle);
+          console.log("Title extracted from exact Meta title: pattern:", htmlTitle);
+        }
+        
+        // If no match, try stronger, more specific Meta title pattern
+        if (!htmlTitle) {
+          const metaTitlePattern = /(?:meta|page|post)\s+title\s*:?\s*(.*?)(?:[\r\n]|<\/|(?:meta|page)\s+description|$)/i;
+          const metaTitleMatch = htmlText.match(metaTitlePattern);
+          
+          if (metaTitleMatch && metaTitleMatch[1]) {
+            htmlTitle = metaTitleMatch[1]
+              .replace(/<[^>]*>/g, '')
+              .trim()
+              .replace(/\s+/g, ' ');
+            
+            console.log("Title extracted from Meta title pattern:", htmlTitle);
+          }
         }
         
         // If that doesn't work, try looser pattern that's just looking for title: anywhere in text

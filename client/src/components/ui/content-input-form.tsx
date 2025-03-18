@@ -78,22 +78,48 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
   const extractTitleFromContent = (text: string): string | null => {
     if (!text.trim()) return null;
 
-    // Try multiple pattern variations to find Meta Title
+    // Try to find meta title in various formats
+    console.log('Attempting to extract title from content...');
     
-    // First, check stronger pattern with Meta Title/Description pair (common SEO pattern)
-    const metaPattern = /(?:meta|page|post)\s+title\s*:?\s*["']?(.*?)(?=(?:meta|page|post)\s+description\s*:|\r|\n\r|\n\n|$)/i;
-    const metaMatch = text.match(metaPattern);
+    // Special pattern for "Meta title:" followed by the actual title
+    // This specific pattern targets cases where "Meta title:" is followed by the actual title
+    const metaTitleColonPattern = /Meta\s+title\s*:([^.!?\r\n]+)/i;
+    const metaTitleColonMatch = text.match(metaTitleColonPattern);
     
-    if (metaMatch && metaMatch[1]) {
-      // Clean up and validate the extracted title
-      const title = metaMatch[1].trim().replace(/["'\r\n]+$/, '').trim();
+    if (metaTitleColonMatch && metaTitleColonMatch[1]) {
+      const title = metaTitleColonMatch[1].trim().replace(/["'\r\n]+$/, '').trim();
+      if (title.length > 5 && title.length < 200) {
+        console.log('Title extracted from "Meta title:" pattern:', title);
+        return title;
+      }
+    }
+    
+    // Try the exact pattern format from the sample HTML
+    // This targets cases where "Meta title" is in a span, followed by ":" and then the title
+    const htmlMetaTitlePattern = /Meta\s+title[\s\S]*?:[\s\S]*?(?:&nbsp;|\s+)([^<\r\n.!?]+)/i;
+    const htmlMetaTitleMatch = text.match(htmlMetaTitlePattern);
+    
+    if (htmlMetaTitleMatch && htmlMetaTitleMatch[1]) {
+      const title = htmlMetaTitleMatch[1].trim().replace(/["'\r\n]+$/, '').trim();
+      if (title.length > 5 && title.length < 200) {
+        console.log('Title extracted from HTML-specific Meta title pattern:', title);
+        return title;
+      }
+    }
+    
+    // Look for Meta title followed by description (common SEO pattern)
+    const metaDescriptionPattern = /(?:meta|page|post)\s+title\s*:?\s*["']?(.*?)(?=(?:meta|page|post)\s+description\s*:|\r|\n\r|\n\n|$)/i;
+    const metaDescriptionMatch = text.match(metaDescriptionPattern);
+    
+    if (metaDescriptionMatch && metaDescriptionMatch[1]) {
+      const title = metaDescriptionMatch[1].trim().replace(/["'\r\n]+$/, '').trim();
       if (title.length > 5 && title.length < 200) {
         console.log('Title extracted from Meta Title/Description pattern:', title);
         return title;
       }
     }
     
-    // Look for standalone Meta title pattern
+    // Look for standalone Meta title pattern (with or without colon)
     const metaTitleMatch = text.match(/(?:meta|page|post)\s+title\s*:?\s*["']?(.*?)(?:[.!?]|\r|\n|$)/i);
     if (metaTitleMatch && metaTitleMatch[1]) {
       const title = metaTitleMatch[1].trim().replace(/["'\r\n]+$/, '').trim();
@@ -103,7 +129,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
       }
     }
     
-    // Try a more general title pattern
+    // Try a more general title pattern as fallback
     const titleMatch = text.match(/title\s*:?\s*["']?(.*?)(?:[.!?]|\r|\n|$)/i);
     if (titleMatch && titleMatch[1]) {
       const title = titleMatch[1].trim().replace(/["'\r\n]+$/, '').trim();
