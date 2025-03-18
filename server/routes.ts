@@ -14,7 +14,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Configure multer for file uploads
   const upload = multer({ 
     dest: os.tmpdir(),
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit to match Express body parser limit
     fileFilter: (req, file, cb) => {
       // Accept PDF, DOCX, and HTML files
       const allowedMimes = [
