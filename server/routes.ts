@@ -36,7 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (checkLinks === true) {
         try {
           console.log("Checking links in content...");
-          linkCheckResult = await checkLinks(content);
+          linkCheckResult = await checkContentLinks(content);
           console.log(`Link check complete: Found ${linkCheckResult.totalLinks} links, ${linkCheckResult.brokenLinks} broken`);
         } catch (error) {
           console.error("Error checking links:", error);

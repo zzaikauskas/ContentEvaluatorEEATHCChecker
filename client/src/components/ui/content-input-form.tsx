@@ -24,6 +24,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
   const [showApiKey, setShowApiKey] = useState(false);
   const [charCount, setCharCount] = useState(0);
   const [url, setUrl] = useState("");
+  const [checkLinks, setCheckLinks] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [eatInfoExpanded, setEatInfoExpanded] = useState(false);

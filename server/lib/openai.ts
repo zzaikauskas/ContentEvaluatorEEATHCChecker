@@ -157,6 +157,11 @@ Respond in the following JSON format:
       improvements: evaluation.improvements,
       recommendations: evaluation.recommendations,
       summary: evaluation.summary,
+      // Link check results
+      totalLinks: linkCheckResult?.totalLinks || null,
+      brokenLinks: linkCheckResult?.brokenLinks || null,
+      workingLinks: linkCheckResult?.workingLinks || null,
+      linkDetails: linkCheckResult?.links || null,
     };
   } catch (error) {
     console.error("OpenAI API error:", error);
