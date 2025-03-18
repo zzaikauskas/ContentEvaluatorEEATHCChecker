@@ -3,6 +3,7 @@ import { ContentEvaluation } from "@shared/schema";
 export interface EvaluationRequest {
   title?: string;
   content: string;
+  keyword?: string;
   apiKey: string;
 }
 

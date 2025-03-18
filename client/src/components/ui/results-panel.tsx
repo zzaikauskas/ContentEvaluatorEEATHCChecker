@@ -7,6 +7,7 @@ import EEATScoreCard from "@/components/ui/eeat-score-card";
 import HelpfulContentCard from "@/components/ui/helpful-content-card";
 import DetailedAnalysisCard from "@/components/ui/detailed-analysis-card";
 import ContentPreviewCard from "@/components/ui/content-preview-card";
+import MetaTitleCard from "@/components/ui/meta-title-card";
 
 interface ResultsPanelProps {
   evaluationState: EvaluationState;

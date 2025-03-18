@@ -19,6 +19,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
   const [activeTab, setActiveTab] = useState<InputTab>("text");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [keyword, setKeyword] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
   const [charCount, setCharCount] = useState(0);
@@ -141,6 +142,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
       const requestData = {
         content,
         title: title || undefined,
+        keyword: keyword || undefined,
         apiKey,
       };
 
@@ -193,6 +195,25 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
               className="w-full"
               placeholder="Enter content title"
             />
+            <p className="text-xs text-neutral-500 mt-1">
+              This will be used as the meta title for title tag optimization analysis
+            </p>
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="main-keyword" className="block text-sm font-medium text-neutral-600 mb-1">
+              Main Keyword (Optional)
+            </label>
+            <Input
+              id="main-keyword"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              className="w-full"
+              placeholder="Enter the main keyword for SEO analysis"
+            />
+            <p className="text-xs text-neutral-500 mt-1">
+              We'll check if this keyword appears in your title and its position
+            </p>
           </div>
           
           {/* Text Input Tab Content */}
