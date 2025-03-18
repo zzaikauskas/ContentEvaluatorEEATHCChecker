@@ -428,6 +428,28 @@ export async function parseDocument(buffer: Buffer, filename: string): Promise<D
           console.log("Title extracted from exact Meta title: pattern:", htmlTitle);
         }
         
+        // If regex-based extraction fails, try with DOM parser with a simpler approach
+        if (!htmlTitle) {
+          try {
+            const dom = new JSDOM(htmlText);
+            const body = dom.window.document.body;
+            
+            // Extract the entire text content
+            if (body) {
+              const bodyText = body.textContent || '';
+              // Now try to find "Meta title:" in the text content
+              const metaTitleMatch = bodyText.match(/Meta\s+title\s*:([^.!?\r\n<]+)/i);
+              
+              if (metaTitleMatch && metaTitleMatch[1]) {
+                htmlTitle = metaTitleMatch[1].trim().replace(/\s+/g, ' ');
+                console.log("Title extracted from DOM-based Meta title search:", htmlTitle);
+              }
+            }
+          } catch (error) {
+            console.error("DOM-based title extraction failed:", error);
+          }
+        }
+        
         // If no match, try stronger, more specific Meta title pattern
         if (!htmlTitle) {
           const metaTitlePattern = /(?:meta|page|post)\s+title\s*:?\s*(.*?)(?:[\r\n]|<\/|(?:meta|page)\s+description|$)/i;
