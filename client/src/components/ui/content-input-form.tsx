@@ -35,6 +35,50 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
     const text = e.target.value;
     setContent(text);
     setCharCount(text.length);
+    
+    // Try to extract title from content if no title is provided
+    if (!title.trim()) {
+      const extractedTitle = extractTitleFromContent(text);
+      if (extractedTitle) {
+        setTitle(extractedTitle);
+        toast({
+          title: "Title extracted",
+          description: "A potential title has been identified from your content.",
+          duration: 3000,
+        });
+      }
+    }
+  };
+  
+  // Helper function to extract potential title from content
+  const extractTitleFromContent = (text: string): string | null => {
+    if (!text.trim()) return null;
+    
+    // Look for explicit title indicators
+    const metaTitleMatch = text.match(/meta\s*title\s*:?\s*["']?([^"'\r\n]+)["']?/i);
+    if (metaTitleMatch && metaTitleMatch[1]) {
+      return metaTitleMatch[1].trim();
+    }
+    
+    const titleMatch = text.match(/title\s*:?\s*["']?([^"'\r\n]+)["']?/i);
+    if (titleMatch && titleMatch[1]) {
+      return titleMatch[1].trim();
+    }
+    
+    // Look for heading-like structures
+    const headingMatch = text.match(/^\s*#+\s*([^\r\n]+)/m) || text.match(/^\s*==+\s*([^\r\n]+)\s*==+/m);
+    if (headingMatch && headingMatch[1]) {
+      return headingMatch[1].trim();
+    }
+    
+    // If nothing else, use the first non-empty line if it's reasonably short (likely a title)
+    const firstLineMatch = text.match(/^\s*([^\r\n]{10,100})/);
+    if (firstLineMatch && firstLineMatch[1]) {
+      // Only use first line if it appears to be a title (not too long, not too short)
+      return firstLineMatch[1].trim();
+    }
+    
+    return null;
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,6 +137,19 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
             title: "HTML parsing error",
             description: "Could not parse the HTML file properly. Using raw text instead.",
             variant: "destructive",
+          });
+        }
+      }
+      
+      // Also try to extract title from the content if none was found yet
+      if (!title.trim()) {
+        const extractedTitle = extractTitleFromContent(text);
+        if (extractedTitle) {
+          setTitle(extractedTitle);
+          toast({
+            title: "Title extracted",
+            description: "A potential title has been identified from your file content.",
+            duration: 3000,
           });
         }
       }
@@ -260,7 +317,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
               placeholder="Enter content title"
             />
             <p className="text-xs text-neutral-500 mt-1">
-              This will be used as the meta title for title tag optimization analysis. For HTML files and URLs, we'll try to extract the title automatically.
+              This will be used as the meta title for title tag optimization analysis. The app will attempt to extract titles automatically from HTML files, URLs, and content that includes phrases like "Meta title:" or "Title:".
             </p>
           </div>
 
