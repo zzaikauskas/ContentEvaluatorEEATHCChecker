@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface ContentPreviewCardProps {
-  title: string;
+  title: string | null;
   content: string;
 }
 

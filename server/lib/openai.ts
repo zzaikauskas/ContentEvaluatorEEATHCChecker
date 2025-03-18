@@ -127,7 +127,7 @@ Respond in the following JSON format:
       id: 0, // Will be assigned by database
       title: title || "Untitled content",
       content,
-      keyword: keyword || undefined,
+      keyword: keyword || null,
       keywordInTitle,
       keywordAtBeginning,
       createdAt: new Date(),
