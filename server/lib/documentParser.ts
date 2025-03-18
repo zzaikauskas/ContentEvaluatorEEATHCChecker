@@ -148,7 +148,7 @@ function extractLinksFromText(text: string): string[] {
     // Standard http/https URLs
     /(https?:\/\/[^\s()<>]+(?:\([^\s()<>]+\)|([^'\s()<>]+)+)?)/gi,
     
-    // HTML href links - captures URLs within href attributes
+    // HTML href links - captures URLs within href attributes with various formats
     /href\s*=\s*["']([^"']+)["']/gi,
     
     // URL in text with www but no protocol
@@ -158,9 +158,16 @@ function extractLinksFromText(text: string): string[] {
     /\[([^\]]+)\]\(([^)]+)\)/gi
   ];
   
+  // For HTML content specifically, try to extract links from anchor tags
+  // Handle both double and single quotes in href attributes
+  const anchorTagPatterns = [
+    /<a\s+(?:[^>]*?\s+)?href="([^"]*)"(?:\s+[^>]*)?>(.*?)<\/a>/gi,  // Double quotes
+    /<a\s+(?:[^>]*?\s+)?href='([^']*)'(?:\s+[^>]*)?>(.*?)<\/a>/gi   // Single quotes
+  ];
+  
   const urls: string[] = [];
   
-  // Process each pattern
+  // Process each standard URL pattern
   patterns.forEach(pattern => {
     let match;
     while ((match = pattern.exec(text)) !== null) {
@@ -173,6 +180,29 @@ function extractLinksFromText(text: string): string[] {
         // Normalize URLs starting with www to have http:// prefix
         const normalizedUrl = url.startsWith('www.') ? `http://${url}` : url;
         urls.push(normalizedUrl);
+      }
+    }
+  });
+  
+  // Process HTML anchor tags specifically (handles complex HTML with attributes)
+  // Loop through each pattern for different quote styles
+  anchorTagPatterns.forEach(pattern => {
+    let anchorMatch;
+    while ((anchorMatch = pattern.exec(text)) !== null) {
+      if (anchorMatch && anchorMatch[1]) {
+        const href = anchorMatch[1].trim();
+        
+        // Add URLs that begin with http/https or www
+        if (href.match(/^(https?:\/\/|www\.)/i)) {
+          // Normalize URLs starting with www to have http:// prefix
+          const normalizedUrl = href.startsWith('www.') ? `http://${href}` : href;
+          urls.push(normalizedUrl);
+        }
+        // Also add absolute paths from the same domain
+        else if (href.startsWith('/') && !href.startsWith('//')) {
+          // For domain-relative URLs starting with a single slash, we'll include them too
+          urls.push(href);
+        }
       }
     }
   });
