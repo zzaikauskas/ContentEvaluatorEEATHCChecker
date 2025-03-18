@@ -177,7 +177,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
             setTitle(data.title);
             toast({
               title: "Title extracted",
-              description: `A title has been extracted from your ${isPdf ? 'PDF' : 'DOCX'} file.`,
+              description: `A title has been extracted from your ${isPdf ? 'PDF' : isDocx ? 'DOCX' : 'HTML'} file.`,
               duration: 3000,
             });
           } else {
@@ -194,7 +194,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
           }
           
           toast({
-            title: `${isPdf ? 'PDF' : 'DOCX'} processed successfully`,
+            title: `${isPdf ? 'PDF' : isDocx ? 'DOCX' : 'HTML'} processed successfully`,
             description: `${data.links.length} links were found in your document.`,
             duration: 3000,
           });
