@@ -61,6 +61,19 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
           const parser = new DOMParser();
           const doc = parser.parseFromString(text, 'text/html');
           
+          // Extract title from HTML
+          const docTitle = doc.querySelector('title');
+          if (docTitle && docTitle.textContent) {
+            setTitle(docTitle.textContent.trim());
+            
+            // Show a toast notification about the extracted title
+            toast({
+              title: "Title extracted",
+              description: "The title has been automatically extracted from the HTML file.",
+              duration: 3000,
+            });
+          }
+          
           // Extract text from the body, remove script and style tags first
           const scripts = doc.querySelectorAll('script, style');
           scripts.forEach(script => script.remove());
@@ -73,17 +86,14 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
           
           // Clean up the text
           text = text.trim().replace(/\s+/g, ' ');
-          
-          // Set a title if none was provided
-          if (!title) {
-            const docTitle = doc.querySelector('title');
-            if (docTitle && docTitle.textContent) {
-              setTitle(docTitle.textContent.trim());
-            }
-          }
         } catch (error) {
           console.error('Error parsing HTML:', error);
           // If HTML parsing fails, just use the raw text
+          toast({
+            title: "HTML parsing error",
+            description: "Could not parse the HTML file properly. Using raw text instead.",
+            variant: "destructive",
+          });
         }
       }
       
@@ -122,6 +132,39 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
         variant: "destructive",
       });
       return;
+    }
+    
+    // If URL tab is active, fetch the title from the URL
+    if (activeTab === "url" && url.trim() && !title.trim()) {
+      try {
+        setEvaluationState((prev) => ({ ...prev, isLoading: true }));
+        
+        // We'll set a placeholder title for now
+        const urlObj = new URL(url);
+        const domain = urlObj.hostname;
+        const pathname = urlObj.pathname;
+        
+        // Create a title from the URL (we'll use just the domain and path for now)
+        // In a production app, we would make a server request to fetch and parse the HTML
+        const extractedTitle = `${domain}${pathname}`;
+        setTitle(extractedTitle);
+        
+        toast({
+          title: "URL processed",
+          description: "Title has been extracted from URL. For better results, consider editing it manually.",
+          duration: 4000,
+        });
+        
+        setEvaluationState((prev) => ({ ...prev, isLoading: false }));
+      } catch (error) {
+        console.error("Error processing URL:", error);
+        toast({
+          title: "URL processing error",
+          description: "Could not extract title from the URL. Please enter a title manually.",
+          variant: "destructive",
+        });
+        setEvaluationState((prev) => ({ ...prev, isLoading: false }));
+      }
     }
 
     if (!apiKey.trim()) {
@@ -196,7 +239,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
               placeholder="Enter content title"
             />
             <p className="text-xs text-neutral-500 mt-1">
-              This will be used as the meta title for title tag optimization analysis
+              This will be used as the meta title for title tag optimization analysis. For HTML files and URLs, we'll try to extract the title automatically.
             </p>
           </div>
 
