@@ -123,26 +123,42 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
       // If it's an HTML file, extract the text content
       if (file.name.toLowerCase().endsWith('.html')) {
         try {
-          // Create a DOM parser
+          // Create a DOM parser - we'll need this in any case
           const parser = new DOMParser();
           const doc = parser.parseFromString(text, 'text/html');
           
-          // Extract title from HTML
-          const docTitle = doc.querySelector('title');
-          if (docTitle && docTitle.textContent) {
-            setTitle(docTitle.textContent.trim());
-            
-            // Show a toast notification about the extracted title
-            toast({
-              title: "Title extracted",
-              description: "The title has been automatically extracted from the HTML file.",
-              duration: 3000,
-            });
+          // First check if there's a <title> tag directly in the HTML code
+          const titleTagMatch = text.match(/<title[^>]*>(.*?)<\/title>/i);
+          if (titleTagMatch && titleTagMatch[1]) {
+            const extractedTitle = titleTagMatch[1].trim();
+            if (extractedTitle) {
+              setTitle(extractedTitle);
+              
+              // Show a toast notification about the extracted title
+              toast({
+                title: "Title extracted",
+                description: "The title has been automatically extracted from the HTML file.",
+                duration: 3000,
+              });
+            }
+          } else {
+            // If regex-based extraction fails, try with DOM parser as backup
+            const docTitle = doc.querySelector('title');
+            if (docTitle && docTitle.textContent) {
+              setTitle(docTitle.textContent.trim());
+              
+              // Show a toast notification about the extracted title
+              toast({
+                title: "Title extracted",
+                description: "The title has been automatically extracted from the HTML file.",
+                duration: 3000,
+              });
+            }
           }
           
           // Extract text from the body, remove script and style tags first
           const scripts = doc.querySelectorAll('script, style');
-          scripts.forEach(script => script.remove());
+          scripts.forEach((script: Element) => script.remove());
           
           // Get text from body or main content areas
           const mainContent = doc.querySelector('main, article, #content, .content');
