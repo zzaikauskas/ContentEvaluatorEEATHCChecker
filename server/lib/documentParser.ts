@@ -14,15 +14,41 @@ export interface DocumentParseResult {
  * Parse a PDF Buffer to extract text content
  */
 async function processPdf(buffer: Buffer): Promise<DocumentParseResult> {
+  let tempFilePath: string | null = null;
+  
   try {
-    // Save buffer to a temporary file to avoid pdf-parse test file issue
-    const tempFilePath = await saveTempFile(buffer, '.pdf');
-    
+    // First try to parse directly with pdf-parse
     try {
-      // Use pdf-parse with the file path instead of buffer
-      // This avoids the test file loading issue
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const pdfParse = require('pdf-parse');
+      // Use dynamic import for pdf-parse
+      const pdfParseModule = await import('pdf-parse');
+      const pdfParse = pdfParseModule.default || pdfParseModule;
+      
+      const data = await pdfParse(buffer);
+      
+      // Extract text
+      const text = data.text || '';
+      
+      // Try to extract a title from the first few lines
+      const lines = text.split('\n').filter((line: string) => line.trim().length > 0);
+      const potentialTitle = lines.length > 0 ? lines[0].trim() : null;
+      
+      // Extract links (PDF parsing doesn't always get hyperlinks, but we try)
+      const links = extractLinksFromText(text);
+      
+      return {
+        text,
+        title: potentialTitle,
+        links
+      };
+    } catch (directParseError) {
+      console.log('Direct PDF parsing failed, trying with temp file:', directParseError);
+      
+      // If direct parsing fails, try with temp file approach
+      tempFilePath = await saveTempFile(buffer, '.pdf');
+      
+      // Use dynamic import for pdf-parse
+      const pdfParseModule = await import('pdf-parse');
+      const pdfParse = pdfParseModule.default || pdfParseModule;
       
       const dataBuffer = fs.readFileSync(tempFilePath);
       const data = await pdfParse(dataBuffer);
@@ -42,17 +68,34 @@ async function processPdf(buffer: Buffer): Promise<DocumentParseResult> {
         title: potentialTitle,
         links
       };
-    } finally {
-      // Clean up temp file
+    }
+  } catch (error) {
+    console.error('PDF parsing error:', error);
+    
+    // If all parsing methods fail, try to extract text using a basic binary-to-text fallback
+    // This is a last resort when pdf-parse fails completely
+    try {
+      console.log('Attempting basic text extraction as fallback');
+      const text = buffer.toString('utf8').replace(/[\x00-\x1F\x7F-\xFF]/g, '') || 'Unable to extract text content';
+      
+      return {
+        text: `Note: PDF parsing failed, limited text extracted. ${text.substring(0, 1000)}...`,
+        title: 'PDF Parsing Failed',
+        links: []
+      };
+    } catch (fallbackError) {
+      console.error('Fallback extraction also failed:', fallbackError);
+      throw new Error(`Failed to parse PDF file: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  } finally {
+    // Clean up temp file if it was created
+    if (tempFilePath) {
       try {
         fs.unlinkSync(tempFilePath);
       } catch (err) {
         console.error('Error removing temp PDF file:', err);
       }
     }
-  } catch (error) {
-    console.error('PDF parsing error:', error);
-    throw new Error('Failed to parse PDF file');
   }
 }
 
@@ -78,7 +121,21 @@ async function parseDocx(buffer: Buffer): Promise<DocumentParseResult> {
     };
   } catch (error) {
     console.error('DOCX parsing error:', error);
-    throw new Error('Failed to parse DOCX file');
+    
+    // If mammoth fails, try to extract some text directly
+    try {
+      console.log('Attempting basic text extraction as fallback for DOCX');
+      const text = buffer.toString('utf8').replace(/[\x00-\x1F\x7F-\xFF]/g, '') || 'Unable to extract text content';
+      
+      return {
+        text: `Note: DOCX parsing failed, limited text extracted. ${text.substring(0, 1000)}...`,
+        title: 'DOCX Parsing Failed',
+        links: []
+      };
+    } catch (fallbackError) {
+      console.error('Fallback extraction also failed for DOCX:', fallbackError);
+      throw new Error(`Failed to parse DOCX file: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 }
 
