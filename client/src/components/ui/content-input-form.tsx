@@ -140,14 +140,15 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
       return;
     }
 
-    // Handle PDF and DOCX files with server-side processing
+    // Handle PDF, DOCX, and HTML files with server-side processing
     const isPdf = file.name.toLowerCase().endsWith('.pdf');
     const isDocx = file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc');
+    const isHtml = file.name.toLowerCase().endsWith('.html') || file.name.toLowerCase().endsWith('.htm');
     
-    if (isPdf || isDocx) {
+    if (isPdf || isDocx || isHtml) {
       // Set loading state
       toast({
-        title: `Processing ${isPdf ? 'PDF' : 'DOCX'} file`,
+        title: `Processing ${isPdf ? 'PDF' : isDocx ? 'DOCX' : 'HTML'} file`,
         description: "Extracting content and links...",
         duration: 5000,
       });

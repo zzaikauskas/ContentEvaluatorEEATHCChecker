@@ -15,18 +15,47 @@ interface LinkCheckResult {
 }
 
 /**
- * Extracts all URLs from content
+ * Extracts all URLs from content, including those in HTML anchor tags
  */
 export function extractLinks(content: string): string[] {
-  // Regular expression to match URLs
-  // This regex looks for http/https links with common URL characters
-  const urlRegex = /(https?:\/\/[^\s\)\"]+)/g;
+  const allLinks: string[] = [];
+  const uniqueUrls: Record<string, boolean> = {};
   
-  // Extract and deduplicate links
-  const matches = content.match(urlRegex) || [];
-  const uniqueLinks = Array.from(new Set(matches));
+  // APPROACH 1: Extract links from href attributes in anchor tags
+  const hrefRegex = /<a\s+[^>]*href\s*=\s*(["'])(.*?)\1[^>]*>/gi;
+  let hrefMatch;
   
-  return uniqueLinks;
+  while ((hrefMatch = hrefRegex.exec(content)) !== null) {
+    if (hrefMatch && hrefMatch[2]) {
+      const href = hrefMatch[2].trim();
+      
+      if (href.match(/^https?:\/\//i)) {
+        const cleanUrl = href.replace(/[.,;:!?)]$/, '');
+        allLinks.push(cleanUrl);
+      }
+    }
+  }
+  
+  // APPROACH 2: Extract standalone URLs using a general pattern
+  const urlRegex = /(https?:\/\/[^\s\)\"<>]+)/g;
+  let urlMatch;
+  
+  while ((urlMatch = urlRegex.exec(content)) !== null) {
+    if (urlMatch && urlMatch[1]) {
+      const url = urlMatch[1].trim();
+      const cleanUrl = url.replace(/[.,;:!?)]$/, '');
+      allLinks.push(cleanUrl);
+    }
+  }
+  
+  // Remove duplicates
+  return allLinks.filter(url => {
+    if (!uniqueUrls[url]) {
+      uniqueUrls[url] = true;
+      return true;
+    }
+    return false;
+  });
 }
 
 /**

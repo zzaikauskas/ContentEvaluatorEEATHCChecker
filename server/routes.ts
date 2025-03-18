@@ -16,16 +16,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     dest: os.tmpdir(),
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
     fileFilter: (req, file, cb) => {
-      // Accept only PDF and DOCX files
-      const allowedMimes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      const allowedExtensions = ['.pdf', '.docx', '.doc'];
+      // Accept PDF, DOCX, and HTML files
+      const allowedMimes = [
+        'application/pdf', 
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/html',
+        'application/html',
+        'application/xhtml+xml'
+      ];
+      const allowedExtensions = ['.pdf', '.docx', '.doc', '.html', '.htm'];
       
       const fileExt = path.extname(file.originalname).toLowerCase();
       
       if (allowedExtensions.includes(fileExt) || allowedMimes.includes(file.mimetype)) {
         cb(null, true);
       } else {
-        cb(new Error('Invalid file type. Only PDF and DOCX files are allowed.'));
+        cb(new Error('Invalid file type. Only PDF, DOCX, and HTML files are allowed.'));
       }
     }
   });
