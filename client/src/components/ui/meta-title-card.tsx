@@ -29,7 +29,7 @@ const MetaTitleCard = ({
   const isAtBeginning = keywordPosition <= 10; // Consider "at beginning" if within first 10 chars
   
   return (
-    <Card>
+    <Card className="card mb-6">
       <CardContent className="p-6">
         <h2 className="text-lg font-semibold mb-4">Meta Title Optimization</h2>
         

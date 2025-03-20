@@ -32,7 +32,7 @@ const LinkCheckCard = ({
   }
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-6 card">
       <CardHeader className="pb-2">
         <CardTitle className="text-xl flex items-center gap-2">
           <Link2 className="h-5 w-5" />

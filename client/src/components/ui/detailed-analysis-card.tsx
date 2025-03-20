@@ -14,7 +14,7 @@ const DetailedAnalysisCard = ({
   recommendations,
 }: DetailedAnalysisCardProps) => {
   return (
-    <Card className="mb-6">
+    <Card className="mb-6 card">
       <CardContent className="p-6">
         <h2 className="text-lg font-semibold mb-4">Detailed Analysis</h2>
         

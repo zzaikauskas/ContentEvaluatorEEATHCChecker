@@ -63,17 +63,27 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
         author: 'Content Evaluation Tool',
       });
       
-      // Get all card elements
-      const cards = resultsRef.current.querySelectorAll('.card');
-      let yOffset = 15; // Starting position
+      // First page - cover page
+      let yOffset = 20; // Starting position
       
       // PDF title
-      pdf.setFontSize(18);
-      pdf.setTextColor(66, 84, 102);
+      pdf.setFontSize(24);
+      pdf.setTextColor(33, 43, 54);
       pdf.text('Content Evaluation Report', 105, yOffset, { align: 'center' });
       yOffset += 15;
       
-      // PDF subtitle
+      // Content title
+      if (result.title) {
+        pdf.setFontSize(16);
+        pdf.setTextColor(66, 84, 102);
+        // Limit title to prevent overflow - split into multiple lines if needed
+        const title = result.title;
+        const titleLines = pdf.splitTextToSize(title, 150);
+        pdf.text(titleLines, 105, yOffset, { align: 'center' });
+        yOffset += 10 * titleLines.length;
+      }
+      
+      // PDF subtitle with date
       pdf.setFontSize(12);
       pdf.setTextColor(107, 114, 128);
       const currentDate = new Date().toLocaleDateString('en-US', {
@@ -84,33 +94,81 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
       pdf.text(`Generated on ${currentDate}`, 105, yOffset, { align: 'center' });
       yOffset += 15;
       
-      // Convert each card to image and add to PDF
+      // Overall score display
+      pdf.setFontSize(18);
+      pdf.setTextColor(33, 43, 54);
+      pdf.text(`Overall Score: ${result.overallScore.toFixed(1)}/10`, 105, yOffset, { align: 'center' });
+      yOffset += 20;
+      
+      // Add a summary box
+      pdf.setFillColor(245, 247, 250);
+      pdf.roundedRect(25, yOffset, 160, 40, 3, 3, 'F');
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(33, 43, 54);
+      pdf.text('Summary:', 30, yOffset + 10);
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(107, 114, 128);
+      const summaryLines = pdf.splitTextToSize(result.summary, 150);
+      pdf.text(summaryLines, 30, yOffset + 20);
+      
+      // Start a new page for the detailed cards
+      pdf.addPage();
+      
+      // Process and add card content
+      const cards = Array.from(resultsRef.current.querySelectorAll('.card'));
+      
+      // We'll start with the first page having a different y-offset
+      yOffset = 15;
+      
+      // For each card, render it separately with proper positioning
       for (let i = 0; i < cards.length; i++) {
         const card = cards[i] as HTMLElement;
-        const canvas = await html2canvas(card, {
+        
+        // Create a clone of the card to style it for PDF rendering
+        const tempCard = card.cloneNode(true) as HTMLElement;
+        
+        // Add temp card to document temporarily to render it
+        tempCard.style.position = 'absolute';
+        tempCard.style.left = '-9999px';
+        tempCard.style.width = '600px'; // Fixed width better for PDF rendering
+        tempCard.style.backgroundColor = 'white';
+        tempCard.style.border = '1px solid #e5e7eb';
+        tempCard.style.borderRadius = '4px';
+        tempCard.style.boxShadow = 'none';
+        document.body.appendChild(tempCard);
+        
+        // Render the card to canvas
+        const canvas = await html2canvas(tempCard, {
           scale: 2, // Higher scale for better quality
           logging: false,
           useCORS: true,
+          backgroundColor: 'white',
         });
+        
+        // Remove the temp element
+        document.body.removeChild(tempCard);
         
         // Convert canvas to image data
         const imgData = canvas.toDataURL('image/png');
         
-        // Add a new page if not the first card and won't fit on the current page
-        if (i > 0 && yOffset + (canvas.height * 0.264583) > 270) {
+        // Calculate image width and height to fit within page
+        // A4 width with proper margins
+        const imgWidth = 170; 
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // Check if this image will fit on the current page, if not add a new page
+        if (yOffset + imgHeight > 270) {
           pdf.addPage();
           yOffset = 15;
         }
         
-        // Calculate image width and height to fit within page
-        const imgWidth = 190; // A4 width with margins
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
         // Add image to the PDF
-        pdf.addImage(imgData, 'PNG', 10, yOffset, imgWidth, imgHeight);
+        pdf.addImage(imgData, 'PNG', 20, yOffset, imgWidth, imgHeight);
         
-        // Update the y-position for the next image
-        yOffset += imgHeight + 10;
+        // Update the y-position for the next image with some margin
+        yOffset += imgHeight + 15;
       }
       
       // Save the PDF
