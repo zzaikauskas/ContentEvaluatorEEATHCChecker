@@ -48,7 +48,7 @@ const EEATScoreCard = ({
   trustworthinessExplanation,
 }: EEATScoreCardProps) => {
   return (
-    <Card>
+    <Card className="card">
       <CardContent className="p-6">
         <h2 className="text-lg font-semibold mb-4">E-E-A-T Evaluation</h2>
         

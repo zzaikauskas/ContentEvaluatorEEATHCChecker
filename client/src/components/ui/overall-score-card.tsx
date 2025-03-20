@@ -36,7 +36,7 @@ const OverallScoreCard = ({ score, summary, date }: OverallScoreCardProps) => {
   };
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-6 card">
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-4">
           <h2 className="text-xl font-semibold">Overall Evaluation</h2>

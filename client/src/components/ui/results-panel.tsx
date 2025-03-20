@@ -201,7 +201,7 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
     };
 
     return (
-      <div>
+      <div ref={resultsRef}>
         {/* Overall Score Card */}
         <OverallScoreCard 
           score={result.overallScore} 
@@ -277,14 +277,15 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
             onClick={handleExport}
           >
             <FileDown className="h-5 w-5" />
-            Export Report
+            Export JSON
           </Button>
           <Button
             variant="outline"
             className="flex items-center gap-2"
+            onClick={handleExportPDF}
           >
-            <Save className="h-5 w-5" />
-            Save Analysis
+            <FileText className="h-5 w-5" />
+            Export PDF
           </Button>
           <Button
             variant="outline"
