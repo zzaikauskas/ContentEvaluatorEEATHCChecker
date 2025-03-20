@@ -521,7 +521,7 @@ const ComparativeResultsPanel = ({ comparativeState, resetComparison }: Comparat
               </AccordionTrigger>
               <AccordionContent className="pt-2 pb-4">
                 <ul className="space-y-2 pl-7 list-disc">
-                  {result.recommendations.map((recommendation, index) => (
+                  {recommendations && recommendations.map((recommendation, index) => (
                     <li key={index} className="text-zinc-700">{recommendation}</li>
                   ))}
                 </ul>
@@ -541,7 +541,7 @@ const ComparativeResultsPanel = ({ comparativeState, resetComparison }: Comparat
         </CardHeader>
         <CardContent>
           <Accordion type="single" collapsible className="w-full">
-            {Object.entries(result.analysisDetails).map(([topic, details], index) => (
+            {analysisDetails && typeof analysisDetails === 'object' && Object.entries(analysisDetails as Record<string, string>).map(([topic, details], index) => (
               <AccordionItem key={index} value={`details-${index}`}>
                 <AccordionTrigger className="hover:no-underline">
                   <span className="font-medium">{topic}</span>
