@@ -46,7 +46,7 @@ const OverallScoreCard = ({ score, summary, date }: OverallScoreCardProps) => {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Overall Score */}
           <div className="flex flex-col items-center justify-center">
-            <div className="relative w-40 h-40">
+            <div className="relative w-32 h-32">
               <svg viewBox="0 0 36 36" className="w-full h-full">
                 <path
                   className="stroke-current text-slate-200"
@@ -65,7 +65,7 @@ const OverallScoreCard = ({ score, summary, date }: OverallScoreCardProps) => {
                 <text
                   x="18"
                   y="21"
-                  className={`fill-neutral-700 text-4xl font-bold ${getScoreColor(score)}`}
+                  className={`fill-neutral-700 text-3xl font-bold ${getScoreColor(score)}`}
                   textAnchor="middle"
                 >
                   {score.toFixed(1)}
