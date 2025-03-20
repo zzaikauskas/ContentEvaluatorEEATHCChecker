@@ -24,7 +24,9 @@ const OverallScoreCard = ({ score, summary, date }: OverallScoreCardProps) => {
 
   // Calculate stroke dash array for circular progress
   const circumference = 2 * Math.PI * 15.9155;
-  const strokeDasharray = `${(score / 10) * circumference}, ${circumference}`;
+  // Ensure score is capped at 10 for display calculations
+  const normalizedScore = Math.min(10, score);
+  const strokeDasharray = `${(normalizedScore / 10) * circumference}, ${circumference}`;
 
   // Get color for stroke based on score
   const getStrokeColor = (score: number) => {
@@ -62,8 +64,8 @@ const OverallScoreCard = ({ score, summary, date }: OverallScoreCardProps) => {
                 />
                 <text
                   x="18"
-                  y="20.5"
-                  className={`fill-neutral-700 text-6xl font-bold ${getScoreColor(score)}`}
+                  y="21"
+                  className={`fill-neutral-700 text-4xl font-bold ${getScoreColor(score)}`}
                   textAnchor="middle"
                 >
                   {score.toFixed(1)}
