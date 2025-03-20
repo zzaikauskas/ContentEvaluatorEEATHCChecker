@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { apiRequest } from "@/lib/queryClient";
 import { InputTabs } from "./input-tabs";
-import { ComparativeState, CompetingArticle, InputTab } from "@/lib/types";
+import { ComparativeState, CompetingArticle, InputTab, ComparativeResponse } from "@/lib/types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { X, Plus } from "lucide-react";
 
@@ -272,11 +272,8 @@ const ComparativeInputForm = ({ setComparativeState, isLoading }: ComparativeInp
       };
 
       // Send request to the server
-      const result = await apiRequest("/api/compare", {
+      const result = await apiRequest<ComparativeResponse>("/api/compare", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(requestData),
       });
 
