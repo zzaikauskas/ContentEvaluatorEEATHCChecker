@@ -7,7 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { InputTabs } from "@/components/ui/input-tabs";
-import { EvaluationState, InputTab } from "@/lib/types";
+import { EvaluationState, InputTab, EvaluationResponse } from "@/lib/types";
 import { eatExplanations, helpfulContentExplanations } from "@shared/schema";
 
 interface ContentInputFormProps {
