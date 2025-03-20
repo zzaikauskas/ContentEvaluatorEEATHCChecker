@@ -1,7 +1,7 @@
 import { EvaluationState, LinkStatus } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, FileDown, Save, RefreshCw } from "lucide-react";
+import { AlertCircle, FileDown, FileText, Save, RefreshCw } from "lucide-react";
 import OverallScoreCard from "@/components/ui/overall-score-card";
 import EEATScoreCard from "@/components/ui/eeat-score-card";
 import HelpfulContentCard from "@/components/ui/helpful-content-card";
@@ -9,6 +9,9 @@ import DetailedAnalysisCard from "@/components/ui/detailed-analysis-card";
 import ContentPreviewCard from "@/components/ui/content-preview-card";
 import MetaTitleCard from "@/components/ui/meta-title-card";
 import LinkCheckCard from "@/components/ui/link-check-card";
+import { useRef } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 interface ResultsPanelProps {
   evaluationState: EvaluationState;
@@ -17,7 +20,8 @@ interface ResultsPanelProps {
 
 const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) => {
   const { isLoading, result, error } = evaluationState;
-
+  const resultsRef = useRef<HTMLDivElement>(null);
+  
   // Function to export the evaluation as a JSON file
   const handleExport = () => {
     if (!result) return;
@@ -31,6 +35,94 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
+  };
+  
+  // Function to export the evaluation as a PDF file
+  const handleExportPDF = async () => {
+    if (!result || !resultsRef.current) return;
+
+    // Display loading state
+    const loadingToast = document.createElement('div');
+    loadingToast.className = 'fixed bottom-4 right-4 bg-primary text-white p-4 rounded-md shadow-lg z-50';
+    loadingToast.innerHTML = 'Generating PDF... Please wait.';
+    document.body.appendChild(loadingToast);
+    
+    try {
+      // Create a new PDF with A4 dimensions
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+      
+      // Set PDF metadata
+      pdf.setProperties({
+        title: `Content Evaluation - ${result.title || 'Untitled'}`,
+        subject: 'E-E-A-T and Helpful Content Evaluation',
+        creator: 'Content Evaluation Tool',
+        author: 'Content Evaluation Tool',
+      });
+      
+      // Get all card elements
+      const cards = resultsRef.current.querySelectorAll('.card');
+      let yOffset = 15; // Starting position
+      
+      // PDF title
+      pdf.setFontSize(18);
+      pdf.setTextColor(66, 84, 102);
+      pdf.text('Content Evaluation Report', 105, yOffset, { align: 'center' });
+      yOffset += 15;
+      
+      // PDF subtitle
+      pdf.setFontSize(12);
+      pdf.setTextColor(107, 114, 128);
+      const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      pdf.text(`Generated on ${currentDate}`, 105, yOffset, { align: 'center' });
+      yOffset += 15;
+      
+      // Convert each card to image and add to PDF
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i] as HTMLElement;
+        const canvas = await html2canvas(card, {
+          scale: 2, // Higher scale for better quality
+          logging: false,
+          useCORS: true,
+        });
+        
+        // Convert canvas to image data
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Add a new page if not the first card and won't fit on the current page
+        if (i > 0 && yOffset + (canvas.height * 0.264583) > 270) {
+          pdf.addPage();
+          yOffset = 15;
+        }
+        
+        // Calculate image width and height to fit within page
+        const imgWidth = 190; // A4 width with margins
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // Add image to the PDF
+        pdf.addImage(imgData, 'PNG', 10, yOffset, imgWidth, imgHeight);
+        
+        // Update the y-position for the next image
+        yOffset += imgHeight + 10;
+      }
+      
+      // Save the PDF
+      const pdfFileName = `content-evaluation-${new Date().toISOString().slice(0, 10)}.pdf`;
+      pdf.save(pdfFileName);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      // Remove loading toast
+      document.body.removeChild(loadingToast);
+    }
   };
 
   // EmptyState component
