@@ -1,4 +1,4 @@
-import { EvaluationState, LinkStatus } from "@/lib/types";
+import { EvaluationState, LinkStatus, EvaluationResponse } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, FileDown, FileText, Save, RefreshCw } from "lucide-react";
@@ -12,6 +12,14 @@ import LinkCheckCard from "@/components/ui/link-check-card";
 import { useRef } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+
+// Define a more specific type for our evaluation result with known array properties
+interface DetailedEvaluationResult extends EvaluationResponse {
+  strengths: string[];
+  improvements: string[];
+  recommendations: string[];
+  linkDetails?: LinkStatus[];
+}
 
 interface ResultsPanelProps {
   evaluationState: EvaluationState;
@@ -53,6 +61,7 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
+        compress: true, // Use compression to reduce file size
       });
       
       // Set PDF metadata
@@ -63,7 +72,7 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
         author: 'Content Evaluation Tool',
       });
       
-      // First page - cover page
+      // First page - cover page with text-based content (no images)
       let yOffset = 20; // Starting position
       
       // PDF title
@@ -113,65 +122,247 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
       const summaryLines = pdf.splitTextToSize(result.summary, 150);
       pdf.text(summaryLines, 30, yOffset + 20);
       
-      // Start a new page for the detailed cards
+      // Start a new page for the detailed text-based content
       pdf.addPage();
       
-      // Process and add card content
-      const cards = Array.from(resultsRef.current.querySelectorAll('.card'));
+      // Define a function to add a section header
+      const addSectionHeader = (title: string) => {
+        pdf.setFontSize(14);
+        pdf.setTextColor(33, 43, 54);
+        pdf.text(title, 20, yOffset);
+        yOffset += 10;
+      };
       
-      // We'll start with the first page having a different y-offset
+      // Define a function to add a score with explanation
+      const addScoreWithExplanation = (name: string, score: number, explanation?: string) => {
+        pdf.setFontSize(12);
+        pdf.setTextColor(66, 84, 102);
+        pdf.text(`${name}: ${score.toFixed(1)}/10`, 20, yOffset);
+        yOffset += 6;
+        
+        if (explanation) {
+          pdf.setFontSize(9);
+          pdf.setTextColor(107, 114, 128);
+          const explanationLines = pdf.splitTextToSize(explanation, 170);
+          pdf.text(explanationLines, 20, yOffset);
+          yOffset += 4 + (explanationLines.length * 3.5);
+        }
+        
+        yOffset += 4; // Add some space after each score
+      };
+      
+      // Add E-E-A-T scores section using text
       yOffset = 15;
+      addSectionHeader("E-E-A-T Evaluation");
       
-      // For each card, render it separately with proper positioning
-      for (let i = 0; i < cards.length; i++) {
-        const card = cards[i] as HTMLElement;
+      addScoreWithExplanation("Experience", result.experienceScore, result.experienceExplanation || undefined);
+      addScoreWithExplanation("Expertise", result.expertiseScore, result.expertiseExplanation || undefined);
+      addScoreWithExplanation("Authoritativeness", result.authoritativenessScore, result.authoritativenessExplanation || undefined);
+      addScoreWithExplanation("Trustworthiness", result.trustworthinessScore, result.trustworthinessExplanation || undefined);
+      
+      // Check if we need a new page for Helpful Content
+      if (yOffset > 230) {
+        pdf.addPage();
+        yOffset = 15;
+      } else {
+        yOffset += 10;
+      }
+      
+      // Add Helpful Content scores section
+      addSectionHeader("Helpful Content Evaluation");
+      
+      addScoreWithExplanation("User-First Content", result.userFirstScore, result.userFirstExplanation || undefined);
+      addScoreWithExplanation("Depth & Value", result.depthValueScore, result.depthValueExplanation || undefined);
+      addScoreWithExplanation("User Satisfaction", result.satisfactionScore, result.satisfactionExplanation || undefined);
+      addScoreWithExplanation("Originality", result.originalityScore, result.originalityExplanation || undefined);
+      
+      // Check if we need a new page for detailed analysis
+      if (yOffset > 220) {
+        pdf.addPage();
+        yOffset = 15;
+      } else {
+        yOffset += 10;
+      }
+      
+      // Add detailed analysis section
+      addSectionHeader("Detailed Analysis");
+      
+      // Add strengths
+      pdf.setFontSize(11);
+      pdf.setTextColor(66, 101, 64);
+      pdf.text("Strengths:", 20, yOffset);
+      yOffset += 6;
+      
+      pdf.setFontSize(9);
+      pdf.setTextColor(33, 43, 54);
+      
+      // Ensure strengths is an array before proceeding
+      const strengths = Array.isArray(result.strengths) ? result.strengths : [];
+      for (let i = 0; i < strengths.length; i++) {
+        const strength = String(strengths[i]); // Ensure item is a string
+        const strengthLines = pdf.splitTextToSize(`- ${strength}`, 170);
+        pdf.text(strengthLines, 20, yOffset);
+        yOffset += (strengthLines.length * 4);
+      }
+      
+      yOffset += 6;
+      
+      // Add improvements
+      pdf.setFontSize(11);
+      pdf.setTextColor(153, 102, 51);
+      pdf.text("Areas for Improvement:", 20, yOffset);
+      yOffset += 6;
+      
+      pdf.setFontSize(9);
+      pdf.setTextColor(33, 43, 54);
+      
+      // Ensure improvements is an array before proceeding
+      const improvements = Array.isArray(result.improvements) ? result.improvements : [];
+      for (let i = 0; i < improvements.length; i++) {
+        const improvement = String(improvements[i]); // Ensure item is a string
+        const improvementLines = pdf.splitTextToSize(`- ${improvement}`, 170);
+        pdf.text(improvementLines, 20, yOffset);
+        yOffset += (improvementLines.length * 4);
         
-        // Create a clone of the card to style it for PDF rendering
-        const tempCard = card.cloneNode(true) as HTMLElement;
-        
-        // Add temp card to document temporarily to render it
-        tempCard.style.position = 'absolute';
-        tempCard.style.left = '-9999px';
-        tempCard.style.width = '600px'; // Fixed width better for PDF rendering
-        tempCard.style.backgroundColor = 'white';
-        tempCard.style.border = '1px solid #e5e7eb';
-        tempCard.style.borderRadius = '4px';
-        tempCard.style.boxShadow = 'none';
-        document.body.appendChild(tempCard);
-        
-        // Render the card to canvas
-        const canvas = await html2canvas(tempCard, {
-          scale: 2, // Higher scale for better quality
-          logging: false,
-          useCORS: true,
-          backgroundColor: 'white',
-        });
-        
-        // Remove the temp element
-        document.body.removeChild(tempCard);
-        
-        // Convert canvas to image data
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Calculate image width and height to fit within page
-        // A4 width with proper margins
-        const imgWidth = 170; 
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
-        // Check if this image will fit on the current page, if not add a new page
-        if (yOffset + imgHeight > 270) {
+        // Check if we need a new page within this section
+        if (yOffset > 270 && i < improvements.length - 1) {
           pdf.addPage();
           yOffset = 15;
         }
-        
-        // Add image to the PDF
-        pdf.addImage(imgData, 'PNG', 20, yOffset, imgWidth, imgHeight);
-        
-        // Update the y-position for the next image with some margin
-        yOffset += imgHeight + 15;
       }
       
-      // Save the PDF
+      yOffset += 6;
+      
+      // Check if we need a new page for recommendations
+      if (yOffset > 250) {
+        pdf.addPage();
+        yOffset = 15;
+      }
+      
+      // Add recommendations
+      pdf.setFontSize(11);
+      pdf.setTextColor(51, 102, 153);
+      pdf.text("Specific Recommendations:", 20, yOffset);
+      yOffset += 6;
+      
+      pdf.setFontSize(9);
+      pdf.setTextColor(33, 43, 54);
+      
+      // Ensure recommendations is an array before proceeding
+      const recommendations = Array.isArray(result.recommendations) ? result.recommendations : [];
+      for (let i = 0; i < recommendations.length; i++) {
+        const recommendation = String(recommendations[i]); // Ensure item is a string
+        const recommendationLines = pdf.splitTextToSize(`- ${recommendation}`, 170);
+        pdf.text(recommendationLines, 20, yOffset);
+        yOffset += (recommendationLines.length * 4);
+        
+        // Check if we need a new page within this section
+        if (yOffset > 270 && i < recommendations.length - 1) {
+          pdf.addPage();
+          yOffset = 15;
+        }
+      }
+      
+      // If keyword and title evaluation exist, add a new page for it
+      if (result.keyword && result.title) {
+        // Check if we need a new page
+        if (yOffset > 200) {
+          pdf.addPage();
+          yOffset = 15;
+        } else {
+          yOffset += 10;
+        }
+        
+        addSectionHeader("Meta Title Optimization");
+        
+        pdf.setFontSize(11);
+        pdf.setTextColor(33, 43, 54);
+        pdf.text(`Title: ${result.title}`, 20, yOffset);
+        yOffset += 6;
+        
+        pdf.setFontSize(10);
+        pdf.text(`Keyword: ${result.keyword}`, 20, yOffset);
+        yOffset += 10;
+        
+        const keywordPresent = result.keywordInTitle === 1;
+        const keywordAtBeginning = result.keywordAtBeginning === 1;
+        
+        pdf.setFontSize(9);
+        if (keywordPresent) {
+          pdf.setTextColor(0, 128, 0); // Green if present
+        } else {
+          pdf.setTextColor(200, 0, 0); // Red if not present
+        }
+        pdf.text(`✓ Keyword Present in Title: ${keywordPresent ? 'Yes' : 'No'}`, 20, yOffset);
+        yOffset += 5;
+        
+        if (keywordAtBeginning) {
+          pdf.setTextColor(0, 128, 0); // Green if at beginning
+        } else {
+          pdf.setTextColor(200, 0, 0); // Red if not at beginning
+        }
+        pdf.text(`✓ Keyword at Beginning: ${keywordAtBeginning ? 'Yes' : 'No'}`, 20, yOffset);
+        yOffset += 10;
+        
+        pdf.setTextColor(33, 43, 54);
+        pdf.text("Recommendations:", 20, yOffset);
+        yOffset += 5;
+        
+        if (!keywordPresent) {
+          pdf.text(`- Add the keyword "${result.keyword}" to your title`, 20, yOffset);
+          yOffset += 5;
+        }
+        
+        if (keywordPresent && !keywordAtBeginning) {
+          pdf.text("- Move the keyword closer to the beginning of your title", 20, yOffset);
+          yOffset += 5;
+        }
+        
+        if (result.title.length < 50) {
+          pdf.text("- Consider making your title longer (50-60 characters is ideal)", 20, yOffset);
+          yOffset += 5;
+        }
+        
+        if (result.title.length > 70) {
+          pdf.text("- Your title might be too long for search results. Consider shortening it to under 70 characters", 20, yOffset);
+          yOffset += 5;
+        }
+      }
+      
+      // If link analysis exists, add it
+      if (result.totalLinks && result.totalLinks > 0) {
+        // Check if we need a new page
+        if (yOffset > 200) {
+          pdf.addPage();
+          yOffset = 15;
+        } else {
+          yOffset += 10;
+        }
+        
+        addSectionHeader("Link Analysis");
+        
+        pdf.setFontSize(10);
+        pdf.setTextColor(33, 43, 54);
+        pdf.text(`Total Links: ${result.totalLinks}`, 20, yOffset);
+        yOffset += 5;
+        
+        pdf.setTextColor(0, 128, 0);
+        pdf.text(`Working Links: ${result.workingLinks || 0}`, 20, yOffset);
+        yOffset += 5;
+        
+        pdf.setTextColor(200, 0, 0);
+        pdf.text(`Broken Links: ${result.brokenLinks || 0}`, 20, yOffset);
+        yOffset += 10;
+        
+        // Add tip
+        pdf.setFontSize(9);
+        pdf.setTextColor(33, 43, 54);
+        pdf.text("Tip: Fix broken links to improve your content's trustworthiness and user experience.", 20, yOffset);
+        yOffset += 4;
+        pdf.text("Note: Some links may appear as errors but actually work - they just block automated checking.", 20, yOffset);
+      }
+      
+      // Save the PDF with compression
       const pdfFileName = `content-evaluation-${new Date().toISOString().slice(0, 10)}.pdf`;
       pdf.save(pdfFileName);
     } catch (error) {
