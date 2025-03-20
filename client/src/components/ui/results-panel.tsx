@@ -13,12 +13,13 @@ import { useRef } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-// Define a more specific type for our evaluation result with known array properties
-interface DetailedEvaluationResult extends EvaluationResponse {
-  strengths: string[];
-  improvements: string[];
-  recommendations: string[];
-  linkDetails?: LinkStatus[];
+// Type guard to check if strengths, improvements, and recommendations are arrays
+function isValidArrays(obj: any): boolean {
+  return (
+    Array.isArray(obj.strengths) &&
+    Array.isArray(obj.improvements) &&
+    Array.isArray(obj.recommendations)
+  );
 }
 
 interface ResultsPanelProps {
