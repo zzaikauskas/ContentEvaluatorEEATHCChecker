@@ -1,4 +1,4 @@
-import { ContentEvaluation } from "@shared/schema";
+import { ContentEvaluation, ComparativeAnalysis } from "@shared/schema";
 
 export interface EvaluationRequest {
   title?: string;
@@ -6,6 +6,20 @@ export interface EvaluationRequest {
   keyword?: string;
   apiKey: string;
   checkLinks?: boolean;
+}
+
+export interface CompetingArticle {
+  title?: string;
+  content: string;
+}
+
+export interface ComparativeRequest {
+  primaryArticle: {
+    title?: string;
+    content: string;
+  };
+  competingArticles: CompetingArticle[];
+  apiKey: string;
 }
 
 export interface LinkStatus {
@@ -23,6 +37,8 @@ export interface LinkCheckResult {
 }
 
 export interface EvaluationResponse extends ContentEvaluation {}
+
+export interface ComparativeResponse extends ComparativeAnalysis {}
 
 export interface ScoreGaugeProps {
   score: number;
@@ -60,9 +76,29 @@ export interface DetailedAnalysis {
   recommendations: string[];
 }
 
+export interface ComparativeScores {
+  informationGain: ScoreWithExplanation;
+  uniqueInsights: ScoreWithExplanation;
+  comprehensiveness: ScoreWithExplanation;
+  recency: ScoreWithExplanation;
+  sourceQuality: ScoreWithExplanation;
+}
+
+export interface ComparativeDetailedAnalysis {
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
+}
+
 export interface EvaluationState {
   isLoading: boolean;
   result: EvaluationResponse | null;
+  error: string | null;
+}
+
+export interface ComparativeState {
+  isLoading: boolean;
+  result: ComparativeResponse | null;
   error: string | null;
 }
 

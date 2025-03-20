@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { evaluateContent } from "./lib/openai";
+import { evaluateContent, compareContent } from "./lib/openai";
 import { checkLinks as checkContentLinks } from "./lib/linkChecker";
 import { parseDocument } from "./lib/documentParser";
 import { z } from "zod";
@@ -117,6 +117,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json(evaluation);
     } catch (error) {
       console.error("Error evaluating content:", error);
+      return res.status(500).json({ 
+        message: error instanceof Error ? error.message : "An unexpected error occurred" 
+      });
+    }
+  });
+
+  // Comparative analysis endpoint
+  app.post("/api/compare", async (req, res) => {
+    try {
+      // Validate request body
+      const competingArticleSchema = z.object({
+        title: z.string().optional(),
+        content: z.string().min(1, "Content is required")
+      });
+
+      const schema = z.object({
+        primaryArticle: z.object({
+          title: z.string().optional(),
+          content: z.string().min(1, "Primary article content is required")
+        }),
+        competingArticles: z.array(competingArticleSchema).min(1, "At least one competing article is required"),
+        apiKey: z.string().min(1, "OpenAI API key is required")
+      });
+
+      const validationResult = schema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid request", 
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const { primaryArticle, competingArticles, apiKey } = validationResult.data;
+
+      // Compare content using OpenAI
+      const comparison = await compareContent({ 
+        primaryArticle, 
+        competingArticles, 
+        apiKey
+      });
+      
+      // Return comparison result
+      return res.status(200).json(comparison);
+    } catch (error) {
+      console.error("Error comparing content:", error);
       return res.status(500).json({ 
         message: error instanceof Error ? error.message : "An unexpected error occurred" 
       });

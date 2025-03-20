@@ -62,6 +62,34 @@ export const insertContentEvaluationSchema = createInsertSchema(contentEvaluatio
 export type InsertContentEvaluation = z.infer<typeof insertContentEvaluationSchema>;
 export type ContentEvaluation = typeof contentEvaluations.$inferSelect;
 
+// Comparative analysis schema
+export const comparativeAnalyses = pgTable("comparative_analyses", {
+  id: serial("id").primaryKey(),
+  primaryArticleTitle: text("primary_article_title"),
+  primaryArticleContent: text("primary_article_content").notNull(),
+  competingArticles: json("competing_articles").notNull(), // Array of { title, content }
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  overallComparison: text("overall_comparison").notNull(),
+  informationGainScore: integer("information_gain_score").notNull(), // 1-10 score of primary vs competitors
+  uniqueInsightsScore: integer("unique_insights_score").notNull(),
+  comprehensivenessScore: integer("comprehensiveness_score").notNull(),
+  recencyScore: integer("recency_score").notNull(),
+  sourceQualityScore: integer("source_quality_score").notNull(),
+  analysisDetails: json("analysis_details").notNull(), // Detailed breakdown of comparisons
+  strengths: json("strengths").notNull(), // Array of strengths vs competing content
+  weaknesses: json("weaknesses").notNull(), // Array of weaknesses vs competing content
+  recommendations: json("recommendations").notNull(), // Array of improvement recommendations
+  summary: text("summary").notNull(), // Overall comparison summary
+});
+
+export const insertComparativeAnalysisSchema = createInsertSchema(comparativeAnalyses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertComparativeAnalysis = z.infer<typeof insertComparativeAnalysisSchema>;
+export type ComparativeAnalysis = typeof comparativeAnalyses.$inferSelect;
+
 // Score thresholds for color coding
 export const scoreThresholds = {
   low: 5, // Below this value is considered low (red)
@@ -81,4 +109,13 @@ export const helpfulContentExplanations = {
   depthValue: "Demonstrates first-hand expertise and depth of knowledge.",
   satisfaction: "Leaves readers feeling they've learned enough about a topic.",
   originality: "Adds value beyond simply summarizing what others have said."
+};
+
+// Comparative analysis criteria explanations
+export const comparativeExplanations = {
+  informationGain: "The extent to which this article provides more/better information than competitors.",
+  uniqueInsights: "Original perspectives, data, or analysis not found in competing articles.",
+  comprehensiveness: "How thoroughly the article covers all aspects of the topic compared to competitors.",
+  recency: "How up-to-date the information is relative to competing content.",
+  sourceQuality: "The credibility and authority of sources used compared to competitors."
 };
