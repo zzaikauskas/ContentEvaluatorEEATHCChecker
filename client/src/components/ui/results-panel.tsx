@@ -63,28 +63,27 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
         author: 'Content Evaluation Tool',
       });
       
-      // First page - cover page
-      let yOffset = 20; // Starting position
+      let yOffset = 15; // Starting position
       
+      // ===== COVER PAGE =====
       // PDF title
-      pdf.setFontSize(24);
+      pdf.setFontSize(20);
       pdf.setTextColor(33, 43, 54);
       pdf.text('Content Evaluation Report', 105, yOffset, { align: 'center' });
-      yOffset += 15;
+      yOffset += 12;
       
       // Content title
       if (result.title) {
-        pdf.setFontSize(16);
+        pdf.setFontSize(14);
         pdf.setTextColor(66, 84, 102);
-        // Limit title to prevent overflow - split into multiple lines if needed
-        const title = result.title;
+        const title = result.title.length > 50 ? result.title.substring(0, 47) + '...' : result.title;
         const titleLines = pdf.splitTextToSize(title, 150);
         pdf.text(titleLines, 105, yOffset, { align: 'center' });
-        yOffset += 10 * titleLines.length;
+        yOffset += 8 * titleLines.length;
       }
       
-      // PDF subtitle with date
-      pdf.setFontSize(12);
+      // Date
+      pdf.setFontSize(10);
       pdf.setTextColor(107, 114, 128);
       const currentDate = new Date().toLocaleDateString('en-US', {
         year: 'numeric',
@@ -92,83 +91,236 @@ const ResultsPanel = ({ evaluationState, resetEvaluation }: ResultsPanelProps) =
         day: 'numeric'
       });
       pdf.text(`Generated on ${currentDate}`, 105, yOffset, { align: 'center' });
-      yOffset += 15;
+      yOffset += 10;
       
-      // Overall score display
-      pdf.setFontSize(18);
-      pdf.setTextColor(33, 43, 54);
-      pdf.text(`Overall Score: ${result.overallScore.toFixed(1)}/10`, 105, yOffset, { align: 'center' });
-      yOffset += 20;
-      
-      // Add a summary box
+      // ===== SUMMARY SECTION =====
+      // Add a score table
+      yOffset += 5;
       pdf.setFillColor(245, 247, 250);
-      pdf.roundedRect(25, yOffset, 160, 40, 3, 3, 'F');
+      pdf.roundedRect(25, yOffset, 160, 22, 3, 3, 'F');
       
-      pdf.setFontSize(12);
+      pdf.setFontSize(14);
       pdf.setTextColor(33, 43, 54);
-      pdf.text('Summary:', 30, yOffset + 10);
+      pdf.text(`Overall Score: ${result.overallScore.toFixed(1)}/10`, 105, yOffset + 8, { align: 'center' });
       
       pdf.setFontSize(10);
-      pdf.setTextColor(107, 114, 128);
-      const summaryLines = pdf.splitTextToSize(result.summary, 150);
-      pdf.text(summaryLines, 30, yOffset + 20);
+      let scoreText;
+      if (result.overallScore >= 8) {
+        scoreText = "Excellent - Meets all E-E-A-T & Helpful Content guidelines";
+      } else if (result.overallScore >= 6) {
+        scoreText = "Good - Room for some improvements";
+      } else {
+        scoreText = "Needs significant improvement";
+      }
+      pdf.text(scoreText, 105, yOffset + 16, { align: 'center' });
+      yOffset += 32;
       
-      // Start a new page for the detailed cards
-      pdf.addPage();
+      // ===== DETAILED SCORES =====
+      // Create a compact score display table
+      const tableX = 20;
+      const tableWidth = 170;
+      const colWidth = tableWidth / 4;
       
-      // Process and add card content
-      const cards = Array.from(resultsRef.current.querySelectorAll('.card'));
+      // Table headers
+      pdf.setFillColor(240, 242, 245);
+      pdf.rect(tableX, yOffset, tableWidth, 8, 'F');
       
-      // We'll start with the first page having a different y-offset
-      yOffset = 15;
+      pdf.setFontSize(9);
+      pdf.setTextColor(66, 84, 102);
+      pdf.text("E-E-A-T & Helpful Content Scores", tableX + 2, yOffset + 5);
+      yOffset += 8;
       
-      // For each card, render it separately with proper positioning
-      for (let i = 0; i < cards.length; i++) {
-        const card = cards[i] as HTMLElement;
+      // Table rows
+      const drawScoreRow = (label: string, score: number, color: string, y: number) => {
+        pdf.setFontSize(9);
+        pdf.setTextColor(66, 84, 102);
+        pdf.text(label, tableX + 2, y + 5);
         
-        // Create a clone of the card to style it for PDF rendering
-        const tempCard = card.cloneNode(true) as HTMLElement;
-        
-        // Add temp card to document temporarily to render it
-        tempCard.style.position = 'absolute';
-        tempCard.style.left = '-9999px';
-        tempCard.style.width = '600px'; // Fixed width better for PDF rendering
-        tempCard.style.backgroundColor = 'white';
-        tempCard.style.border = '1px solid #e5e7eb';
-        tempCard.style.borderRadius = '4px';
-        tempCard.style.boxShadow = 'none';
-        document.body.appendChild(tempCard);
-        
-        // Render the card to canvas
-        const canvas = await html2canvas(tempCard, {
-          scale: 2, // Higher scale for better quality
-          logging: false,
-          useCORS: true,
-          backgroundColor: 'white',
-        });
-        
-        // Remove the temp element
-        document.body.removeChild(tempCard);
-        
-        // Convert canvas to image data
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Calculate image width and height to fit within page
-        // A4 width with proper margins
-        const imgWidth = 170; 
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
-        // Check if this image will fit on the current page, if not add a new page
-        if (yOffset + imgHeight > 270) {
+        // Score display
+        pdf.setFontSize(9);
+        pdf.setTextColor(33, 43, 54);
+        pdf.text(score.toFixed(1), tableX + 80, y + 5, { align: 'center' });
+      };
+      
+      // Draw score rows
+      pdf.setDrawColor(220, 223, 228);
+      pdf.line(tableX, yOffset, tableX + tableWidth, yOffset);
+      
+      // E-E-A-T Scores row
+      const rowHeight = 7;
+      drawScoreRow("Experience", result.experienceScore, "#4CAF50", yOffset);
+      drawScoreRow("Expertise", result.expertiseScore, "#4CAF50", yOffset);
+      pdf.line(tableX + 85, yOffset, tableX + 85, yOffset + rowHeight);
+      drawScoreRow("Authoritativeness", result.authoritativenessScore, "#4CAF50", yOffset);
+      drawScoreRow("Trustworthiness", result.trustworthinessScore, "#4CAF50", yOffset);
+      yOffset += rowHeight;
+      pdf.line(tableX, yOffset, tableX + tableWidth, yOffset);
+      
+      // Helpful Content Scores row
+      drawScoreRow("User-First", result.userFirstScore, "#2196F3", yOffset);
+      drawScoreRow("Depth/Value", result.depthValueScore, "#2196F3", yOffset);
+      pdf.line(tableX + 85, yOffset, tableX + 85, yOffset + rowHeight);
+      drawScoreRow("Satisfaction", result.satisfactionScore, "#2196F3", yOffset);
+      drawScoreRow("Originality", result.originalityScore, "#2196F3", yOffset);
+      yOffset += rowHeight;
+      pdf.line(tableX, yOffset, tableX + tableWidth, yOffset);
+      
+      // Add border around table
+      pdf.setLineWidth(0.1);
+      pdf.rect(tableX, yOffset - rowHeight * 2, tableWidth, rowHeight * 2);
+      pdf.line(tableX + 42.5, yOffset - rowHeight * 2, tableX + 42.5, yOffset);
+      pdf.line(tableX + 127.5, yOffset - rowHeight * 2, tableX + 127.5, yOffset);
+      
+      yOffset += 15;
+      
+      // Add summary
+      pdf.setFontSize(12);
+      pdf.setTextColor(33, 43, 54);
+      pdf.text("Content Summary", tableX, yOffset);
+      yOffset += 8;
+      
+      pdf.setFontSize(9);
+      pdf.setTextColor(66, 84, 102);
+      const summaryLines = pdf.splitTextToSize(result.summary, 170);
+      pdf.text(summaryLines, tableX, yOffset);
+      yOffset += summaryLines.length * 4.5 + 10;
+      
+      // ===== STRENGTHS & IMPROVEMENTS =====
+      // Section heading
+      pdf.setFontSize(12);
+      pdf.setTextColor(33, 43, 54);
+      pdf.text("Key Strengths & Areas for Improvement", tableX, yOffset);
+      yOffset += 8;
+      
+      // Strengths
+      pdf.setFontSize(10);
+      pdf.setTextColor(23, 118, 56); // Green
+      pdf.text("Strengths:", tableX, yOffset);
+      yOffset += 5;
+      
+      pdf.setFontSize(9);
+      pdf.setTextColor(66, 84, 102);
+      
+      // Get top 3 strengths to save space
+      const topStrengths = result.strengths?.slice(0, 3) || [];
+      for (let i = 0; i < topStrengths.length; i++) {
+        const strength = `• ${topStrengths[i]}`;
+        const lines = pdf.splitTextToSize(strength, 160);
+        pdf.text(lines, tableX, yOffset);
+        yOffset += lines.length * 4;
+      }
+      
+      yOffset += 5;
+      
+      // Areas for improvement
+      pdf.setFontSize(10);
+      pdf.setTextColor(198, 60, 43); // Red
+      pdf.text("Areas for Improvement:", tableX, yOffset);
+      yOffset += 5;
+      
+      pdf.setFontSize(9);
+      pdf.setTextColor(66, 84, 102);
+      
+      // Get top 3 improvements to save space
+      const topImprovements = result.improvements?.slice(0, 3) || [];
+      for (let i = 0; i < topImprovements.length; i++) {
+        const improvement = `• ${topImprovements[i]}`;
+        const lines = pdf.splitTextToSize(improvement, 160);
+        pdf.text(lines, tableX, yOffset);
+        yOffset += lines.length * 4;
+      }
+      
+      // If we're getting to the end of the page, start a new page
+      if (yOffset > 270) {
+        pdf.addPage();
+        yOffset = 15;
+      }
+      
+      // ===== RECOMMENDATIONS =====
+      yOffset += 10;
+      pdf.setFontSize(12);
+      pdf.setTextColor(33, 43, 54);
+      pdf.text("Specific Recommendations", tableX, yOffset);
+      yOffset += 8;
+      
+      pdf.setFontSize(9);
+      pdf.setTextColor(66, 84, 102);
+      
+      // Get top 3-4 recommendations to save space
+      const topRecommendations = result.recommendations?.slice(0, 4) || [];
+      for (let i = 0; i < topRecommendations.length; i++) {
+        const recommendation = `${i+1}. ${topRecommendations[i]}`;
+        const lines = pdf.splitTextToSize(recommendation, 160);
+        pdf.text(lines, tableX, yOffset);
+        yOffset += lines.length * 4;
+      }
+      
+      yOffset += 10;
+      
+      // ===== ADDITIONAL DETAILS =====
+      // Add meta title and link information if available
+      if (result.keyword && result.title && result.keywordInTitle !== null) {
+        if (yOffset > 240) {
           pdf.addPage();
           yOffset = 15;
         }
         
-        // Add image to the PDF
-        pdf.addImage(imgData, 'PNG', 20, yOffset, imgWidth, imgHeight);
+        pdf.setFontSize(12);
+        pdf.setTextColor(33, 43, 54);
+        pdf.text("Meta Title Analysis", tableX, yOffset);
+        yOffset += 8;
         
-        // Update the y-position for the next image with some margin
-        yOffset += imgHeight + 15;
+        pdf.setFontSize(9);
+        pdf.setDrawColor(220, 223, 228);
+        pdf.setFillColor(245, 247, 250);
+        pdf.roundedRect(tableX, yOffset, tableWidth, 25, 2, 2, 'F');
+        
+        pdf.setTextColor(66, 84, 102);
+        pdf.text(`Title: ${result.title}`, tableX + 4, yOffset + 5);
+        pdf.text(`Keyword: ${result.keyword}`, tableX + 4, yOffset + 10);
+        
+        const keywordStatus = result.keywordInTitle === 1 ? "Keyword present in title ✓" : "Keyword missing in title ✗";
+        const keywordPosition = result.keywordAtBeginning === 1 ? "Keyword at beginning of title ✓" : "Keyword not at beginning ✗";
+        
+        pdf.text(keywordStatus, tableX + 4, yOffset + 15);
+        pdf.text(keywordPosition, tableX + 4, yOffset + 20);
+        
+        yOffset += 35;
+      }
+      
+      // ===== LINK ANALYSIS =====
+      if (result.totalLinks && result.totalLinks > 0) {
+        if (yOffset > 240) {
+          pdf.addPage();
+          yOffset = 15;
+        }
+        
+        pdf.setFontSize(12);
+        pdf.setTextColor(33, 43, 54);
+        pdf.text("Link Analysis", tableX, yOffset);
+        yOffset += 8;
+        
+        pdf.setFontSize(9);
+        pdf.setDrawColor(220, 223, 228);
+        pdf.setFillColor(245, 247, 250);
+        pdf.roundedRect(tableX, yOffset, tableWidth, 20, 2, 2, 'F');
+        
+        pdf.setTextColor(66, 84, 102);
+        pdf.text(`Total Links: ${result.totalLinks}`, tableX + 4, yOffset + 5);
+        pdf.text(`Working Links: ${result.workingLinks || 0}`, tableX + 4, yOffset + 10);
+        pdf.text(`Broken Links: ${result.brokenLinks || 0}`, tableX + 4, yOffset + 15);
+        
+        yOffset += 30;
+      }
+      
+      // Footer with page numbers
+      const totalPages = pdf.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(8);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(`Page ${i} of ${totalPages}`, 105, 290, { align: 'center' });
+        pdf.text('Generated by Content Evaluation Tool', 105, 295, { align: 'center' });
       }
       
       // Save the PDF
