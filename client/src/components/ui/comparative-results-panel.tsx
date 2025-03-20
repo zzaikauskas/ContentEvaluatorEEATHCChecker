@@ -5,7 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, AlertCircle, FileText, Download } from "lucide-react";
-import { ComparativeState } from "@/lib/types";
+import { ComparativeState, ComparativeResponse } from "@/lib/types";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,12 @@ const ScoreGauge = ({ score, maxScore = 10 }: { score: number, maxScore?: number
 
 const ComparativeResultsPanel = ({ comparativeState, resetComparison }: ComparativeResultsPanelProps) => {
   const { result, error } = comparativeState;
+
+  // Type assertions for the arrays
+  const strengths = result?.strengths as string[] | undefined;
+  const weaknesses = result?.weaknesses as string[] | undefined;
+  const recommendations = result?.recommendations as string[] | undefined;
+  const analysisDetails = result?.analysisDetails as Record<string, string> | undefined;
 
   // Reference for the PDF export
   const resultsPanelRef = React.useRef<HTMLDivElement>(null);
@@ -175,17 +181,19 @@ const ComparativeResultsPanel = ({ comparativeState, resetComparison }: Comparat
       pdf.setFontSize(10);
 
       // Add each strength bullet point
-      result.strengths.forEach((strength, index) => {
-        const splitStrength = pdf.splitTextToSize(`• ${strength}`, 170);
-        pdf.text(splitStrength, 25, yPos);
-        yPos += splitStrength.length * 5 + 5;
-        
-        // Add a page break if needed
-        if (yPos > 270 && index < result.strengths.length - 1) {
-          pdf.addPage();
-          yPos = 20;
-        }
-      });
+      if (strengths && strengths.length > 0) {
+        strengths.forEach((strength, index) => {
+          const splitStrength = pdf.splitTextToSize(`• ${strength}`, 170);
+          pdf.text(splitStrength, 25, yPos);
+          yPos += splitStrength.length * 5 + 5;
+          
+          // Add a page break if needed
+          if (yPos > 270 && index < strengths.length - 1) {
+            pdf.addPage();
+            yPos = 20;
+          }
+        });
+      }
 
       // Check if we need a page break for weaknesses
       if (yPos > 220) {
@@ -200,17 +208,19 @@ const ComparativeResultsPanel = ({ comparativeState, resetComparison }: Comparat
       pdf.setFontSize(10);
 
       // Add each weakness bullet point
-      result.weaknesses.forEach((weakness, index) => {
-        const splitWeakness = pdf.splitTextToSize(`• ${weakness}`, 170);
-        pdf.text(splitWeakness, 25, yPos);
-        yPos += splitWeakness.length * 5 + 5;
-        
-        // Add a page break if needed
-        if (yPos > 270 && index < result.weaknesses.length - 1) {
-          pdf.addPage();
-          yPos = 20;
-        }
-      });
+      if (weaknesses && weaknesses.length > 0) {
+        weaknesses.forEach((weakness, index) => {
+          const splitWeakness = pdf.splitTextToSize(`• ${weakness}`, 170);
+          pdf.text(splitWeakness, 25, yPos);
+          yPos += splitWeakness.length * 5 + 5;
+          
+          // Add a page break if needed
+          if (yPos > 270 && index < weaknesses.length - 1) {
+            pdf.addPage();
+            yPos = 20;
+          }
+        });
+      }
 
       // Check if we need a page break for recommendations
       if (yPos > 220) {
@@ -225,17 +235,19 @@ const ComparativeResultsPanel = ({ comparativeState, resetComparison }: Comparat
       pdf.setFontSize(10);
 
       // Add each recommendation bullet point
-      result.recommendations.forEach((recommendation, index) => {
-        const splitRecommendation = pdf.splitTextToSize(`• ${recommendation}`, 170);
-        pdf.text(splitRecommendation, 25, yPos);
-        yPos += splitRecommendation.length * 5 + 5;
-        
-        // Add a page break if needed
-        if (yPos > 270 && index < result.recommendations.length - 1) {
-          pdf.addPage();
-          yPos = 20;
-        }
-      });
+      if (recommendations && recommendations.length > 0) {
+        recommendations.forEach((recommendation, index) => {
+          const splitRecommendation = pdf.splitTextToSize(`• ${recommendation}`, 170);
+          pdf.text(splitRecommendation, 25, yPos);
+          yPos += splitRecommendation.length * 5 + 5;
+          
+          // Add a page break if needed
+          if (yPos > 270 && index < recommendations.length - 1) {
+            pdf.addPage();
+            yPos = 20;
+          }
+        });
+      }
 
       // Save the PDF
       pdf.save(`comparative-analysis-${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -475,7 +487,7 @@ const ComparativeResultsPanel = ({ comparativeState, resetComparison }: Comparat
               </AccordionTrigger>
               <AccordionContent className="pt-2 pb-4">
                 <ul className="space-y-2 pl-7 list-disc">
-                  {result.strengths.map((strength, index) => (
+                  {strengths && strengths.map((strength, index) => (
                     <li key={index} className="text-zinc-700">{strength}</li>
                   ))}
                 </ul>
@@ -492,7 +504,7 @@ const ComparativeResultsPanel = ({ comparativeState, resetComparison }: Comparat
               </AccordionTrigger>
               <AccordionContent className="pt-2 pb-4">
                 <ul className="space-y-2 pl-7 list-disc">
-                  {result.weaknesses.map((weakness, index) => (
+                  {weaknesses && weaknesses.map((weakness, index) => (
                     <li key={index} className="text-zinc-700">{weakness}</li>
                   ))}
                 </ul>
