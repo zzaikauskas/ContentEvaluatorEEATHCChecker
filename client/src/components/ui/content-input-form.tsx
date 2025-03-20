@@ -441,11 +441,10 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
         checkLinks: checkLinks || undefined,
       };
 
-      const response = await apiRequest("/api/evaluate", {
+      const result = await apiRequest<EvaluationResponse>("/api/evaluate", {
         method: "POST",
         body: JSON.stringify(requestData)
       });
-      const result = await response.json();
 
       setEvaluationState({
         isLoading: false,
