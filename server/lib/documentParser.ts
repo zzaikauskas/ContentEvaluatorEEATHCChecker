@@ -509,18 +509,49 @@ export async function parseDocument(buffer: Buffer, filename: string): Promise<D
       
       // Check for Meta title pattern in content - this can appear in various forms
       if (!htmlTitle) {
-        // First look for the exact pattern "Meta title:" followed by text, which is common in SEO content
-        const exactMetaTitlePattern = /Meta\s+title\s*:([^.!?\r\n<]+)/i;
-        const exactMetaTitleMatch = htmlText.match(exactMetaTitlePattern);
+        // Extract the text between Meta Title and Meta Description
+        // Find the position of "Meta Title:" (case insensitive)
+        const titlePos = htmlText.search(/Meta\s+Title\s*:/i);
         
-        if (exactMetaTitleMatch && exactMetaTitleMatch[1]) {
-          htmlTitle = exactMetaTitleMatch[1]
-            .replace(/<[^>]*>/g, '')
-            .trim()
-            .replace(/\s+/g, ' ')
-            .replace(/&nbsp;/g, ' ');
+        if (titlePos !== -1) {
+          // Find the position of "Meta Description:" after the title position
+          const descPos = htmlText.substring(titlePos).search(/Meta\s+Description\s*:/i);
           
-          console.log("Title extracted from exact Meta title: pattern:", htmlTitle);
+          // If both positions are found, extract the text between them
+          if (descPos !== -1) {
+            // Get the position after "Meta Title:"
+            const titleEndPos = htmlText.substring(titlePos).search(/:/i) + titlePos + 1;
+            
+            // Extract text between the end of title tag and start of description tag
+            const extractedText = htmlText.substring(
+              titleEndPos, 
+              titlePos + descPos
+            ).trim();
+            
+            htmlTitle = extractedText
+              .replace(/<[^>]*>/g, '')
+              .trim()
+              .replace(/\s+/g, ' ')
+              .replace(/&nbsp;/g, ' ');
+            
+            console.log("Title extracted from Meta Title-Description pattern:", htmlTitle);
+          }
+        }
+        
+        // If that fails, look for the exact pattern "Meta title:" followed by text
+        if (!htmlTitle) {
+          const exactMetaTitlePattern = /Meta\s+[tT]itle\s*:([^.!?\r\n<]+)/i;
+          const exactMetaTitleMatch = htmlText.match(exactMetaTitlePattern);
+          
+          if (exactMetaTitleMatch && exactMetaTitleMatch[1]) {
+            htmlTitle = exactMetaTitleMatch[1]
+              .replace(/<[^>]*>/g, '')
+              .trim()
+              .replace(/\s+/g, ' ')
+              .replace(/&nbsp;/g, ' ');
+            
+            console.log("Title extracted from exact Meta title: pattern:", htmlTitle);
+          }
         }
         
         // If regex-based extraction fails, try with DOM parser with a simpler approach

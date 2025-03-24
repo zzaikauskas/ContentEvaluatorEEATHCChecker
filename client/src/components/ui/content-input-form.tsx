@@ -81,9 +81,37 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
     // Try to find meta title in various formats
     console.log('Attempting to extract title from content...');
     
-    // Special pattern for "Meta title:" followed by the actual title
-    // This specific pattern targets cases where "Meta title:" is followed by the actual title
-    const metaTitleColonPattern = /Meta\s+title\s*:([^.!?\r\n]+)/i;
+    // Look for text between "Meta Title:" and "Meta Description:" - prioritize this pattern
+    // Using manual string search instead of regex with /s flag
+    const titlePos = text.search(/Meta\s+[tT]itle\s*:/i);
+    let metaTitleDescExtracted: string | null = null;
+    
+    if (titlePos !== -1) {
+      // Find the position of "Meta Description:" after the title position
+      const afterTitleText = text.substring(titlePos);
+      const descPos = afterTitleText.search(/Meta\s+[dD]escription\s*:/i);
+      
+      // If description is found, extract the text between title and description
+      if (descPos !== -1) {
+        // Find position after the colon in Meta Title:
+        const titleColonPos = afterTitleText.search(/:/i);
+        if (titleColonPos !== -1) {
+          // Extract the text between the title's colon and the description
+          metaTitleDescExtracted = afterTitleText.substring(titleColonPos + 1, descPos).trim();
+        }
+      }
+    }
+    
+    if (metaTitleDescExtracted) {
+      const title = metaTitleDescExtracted.trim().replace(/["'\r\n]+$/, '').trim();
+      if (title.length > 5 && title.length < 200) {
+        console.log('Title extracted from "Meta Title-Description" pattern:', title);
+        return title;
+      }
+    }
+    
+    // Special pattern for "Meta title:" followed by the actual title if the above fails
+    const metaTitleColonPattern = /Meta\s+[tT]itle\s*:([^.!?\r\n]+)/i;
     const metaTitleColonMatch = text.match(metaTitleColonPattern);
     
     if (metaTitleColonMatch && metaTitleColonMatch[1]) {
