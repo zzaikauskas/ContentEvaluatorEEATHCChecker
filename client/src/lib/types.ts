@@ -102,4 +102,5 @@ export interface ComparativeState {
   error: string | null;
 }
 
-export type InputTab = 'text' | 'file' | 'url';
+// No longer needed as we only use file upload
+// export type InputTab = 'text' | 'file' | 'url';

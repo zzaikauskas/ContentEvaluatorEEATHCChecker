@@ -2,12 +2,11 @@ import { useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { InputTabs } from "@/components/ui/input-tabs";
-import { EvaluationState, InputTab, EvaluationResponse } from "@/lib/types";
+import { EvaluationState, EvaluationResponse } from "@/lib/types";
 import { eatExplanations, helpfulContentExplanations } from "@shared/schema";
 
 interface ContentInputFormProps {
@@ -16,14 +15,12 @@ interface ContentInputFormProps {
 }
 
 const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormProps) => {
-  const [activeTab, setActiveTab] = useState<InputTab>("text");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [keyword, setKeyword] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
   const [charCount, setCharCount] = useState(0);
-  const [url, setUrl] = useState("");
   const [checkLinks, setCheckLinks] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -32,48 +29,6 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
   
   const { toast } = useToast();
 
-  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const text = e.target.value;
-    setContent(text);
-    setCharCount(text.length);
-    
-    // Check if we're working with HTML content
-    const isHtmlContent = text.trim().toLowerCase().startsWith('<!doctype html>') || 
-                          text.trim().toLowerCase().startsWith('<html') ||
-                          (text.includes('<head>') && text.includes('<body>'));
-    
-    // For HTML content, we'll prioritize title tag extraction
-    if (isHtmlContent) {
-      const titleTagMatch = text.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-      if (titleTagMatch && titleTagMatch[1]) {
-        const extractedTitle = titleTagMatch[1].trim().replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ');
-        if (extractedTitle && !title.trim()) {
-          setTitle(extractedTitle);
-          toast({
-            title: "Title extracted",
-            description: "Title has been automatically extracted from HTML content.",
-            duration: 3000,
-          });
-          console.log('HTML title extracted from pasted content:', extractedTitle);
-          return;
-        }
-      }
-    }
-    
-    // For non-HTML content or if no HTML title found, try to extract title from content
-    if (!title.trim()) {
-      const extractedTitle = extractTitleFromContent(text);
-      if (extractedTitle) {
-        setTitle(extractedTitle);
-        toast({
-          title: "Title extracted",
-          description: "A potential title has been identified from your content.",
-          duration: 3000,
-        });
-      }
-    }
-  };
-  
   // Helper function to extract potential title from content
   const extractTitleFromContent = (text: string): string | null => {
     if (!text.trim()) return null;
@@ -399,64 +354,13 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
     e.preventDefault();
 
     // Validate form
-    if (activeTab === "text" && !content.trim()) {
-      toast({
-        title: "Content required",
-        description: "Please enter some content to evaluate.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (activeTab === "file" && !content.trim()) {
+    if (!content.trim()) {
       toast({
         title: "File required",
         description: "Please upload a file to evaluate.",
         variant: "destructive",
       });
       return;
-    }
-
-    if (activeTab === "url" && !url.trim()) {
-      toast({
-        title: "URL required",
-        description: "Please enter a URL to evaluate.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // If URL tab is active, fetch the title from the URL
-    if (activeTab === "url" && url.trim() && !title.trim()) {
-      try {
-        setEvaluationState((prev) => ({ ...prev, isLoading: true }));
-        
-        // We'll set a placeholder title for now
-        const urlObj = new URL(url);
-        const domain = urlObj.hostname;
-        const pathname = urlObj.pathname;
-        
-        // Create a title from the URL (we'll use just the domain and path for now)
-        // In a production app, we would make a server request to fetch and parse the HTML
-        const extractedTitle = `${domain}${pathname}`;
-        setTitle(extractedTitle);
-        
-        toast({
-          title: "URL processed",
-          description: "Title has been extracted from URL. For better results, consider editing it manually.",
-          duration: 4000,
-        });
-        
-        setEvaluationState((prev) => ({ ...prev, isLoading: false }));
-      } catch (error) {
-        console.error("Error processing URL:", error);
-        toast({
-          title: "URL processing error",
-          description: "Could not extract title from the URL. Please enter a title manually.",
-          variant: "destructive",
-        });
-        setEvaluationState((prev) => ({ ...prev, isLoading: false }));
-      }
     }
 
     if (!apiKey.trim()) {
@@ -472,8 +376,6 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
     setEvaluationState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Currently only supporting direct text input
-      // URL and file handling would require additional server-side processing
       const requestData = {
         content,
         title: title || undefined,
@@ -517,7 +419,6 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
     setTitle("");
     setContent("");
     setKeyword("");
-    setUrl("");
     setCharCount(0);
     setCheckLinks(false);
     // Don't clear API key as it's likely to be reused
@@ -539,8 +440,8 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
       <CardContent className="p-6">
         <h2 className="text-xl font-semibold mb-4">Content Input</h2>
         
-        {/* Input Tabs */}
-        <InputTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+        {/* Input Header */}
+        <InputTabs />
         
         {/* Input Form */}
         <form onSubmit={handleSubmit}>
@@ -556,7 +457,7 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
               placeholder="Enter content title"
             />
             <p className="text-xs text-neutral-500 mt-1">
-              This will be used as the meta title for title tag optimization analysis. The app will automatically extract titles from HTML files, URLs, and content with SEO formatting (e.g., content between "Meta title:" and "Meta description:").
+              This will be used as the meta title for title tag optimization analysis. The app will automatically extract titles from HTML files and content with SEO formatting (e.g., content between "Meta title:" and "Meta description:").
             </p>
           </div>
 
@@ -576,89 +477,56 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
             </p>
           </div>
           
-          {/* Text Input Tab Content */}
-          {activeTab === "text" && (
-            <div className="mb-4">
-              <label htmlFor="content-text" className="block text-sm font-medium text-neutral-600 mb-1">
-                Content Text <span className="text-red-500">*</span>
-              </label>
-              <Textarea
-                id="content-text"
-                rows={12}
-                className="w-full resize-none"
-                placeholder="Paste your content here for evaluation..."
-                value={content}
-                onChange={handleContentChange}
-              />
-              <div className="flex justify-between mt-1">
-                <span className="text-xs text-neutral-500">{charCount} characters</span>
-                <span className="text-xs text-neutral-500">Recommended: 300+ characters</span>
-              </div>
-            </div>
-          )}
-          
-          {/* File Upload Tab Content */}
-          {activeTab === "file" && (
-            <div className="mb-4">
-              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-10 w-10 mx-auto text-neutral-400 mb-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
-                <p className="text-neutral-600 mb-2">Drop your file here or</p>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept=".txt,.docx,.pdf,.html"
-                  onChange={handleFileChange}
+          {/* File Upload Content */}
+          <div className="mb-4">
+            <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-10 w-10 mx-auto text-neutral-400 mb-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                 />
-                <Button
-                  type="button"
-                  onClick={handleBrowseFiles}
-                  className="inline-flex items-center"
-                >
-                  Browse files
-                </Button>
-                <p className="text-xs text-neutral-500 mt-2">
-                  Supported formats: .txt, .docx, .pdf, .html (Max 5MB)
-                </p>
-                <p className="text-xs text-neutral-500 mt-1">
-                  <strong>Link checking is supported in all file formats</strong> - PDF and DOCX files will be processed server-side to extract links.
-                </p>
-              </div>
-            </div>
-          )}
-          
-          {/* URL Tab Content */}
-          {activeTab === "url" && (
-            <div className="mb-4">
-              <label htmlFor="content-url" className="block text-sm font-medium text-neutral-600 mb-1">
-                Content URL <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="url"
-                id="content-url"
-                className="w-full"
-                placeholder="https://example.com/your-content"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
+              </svg>
+              <p className="text-neutral-600 mb-2">Drop your file here or</p>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".txt,.docx,.pdf,.html"
+                onChange={handleFileChange}
               />
+              <Button
+                type="button"
+                onClick={handleBrowseFiles}
+                className="inline-flex items-center"
+              >
+                Browse files
+              </Button>
+              <p className="text-xs text-neutral-500 mt-2">
+                Supported formats: .txt, .docx, .pdf, .html (Max 5MB)
+              </p>
               <p className="text-xs text-neutral-500 mt-1">
-                We'll extract and evaluate the main content from this URL
+                <strong>Link checking is supported in all file formats</strong> - PDF and DOCX files will be processed server-side to extract links.
               </p>
             </div>
-          )}
+            {content && (
+              <div className="mt-2">
+                <p className="text-xs text-neutral-500">{charCount} characters</p>
+                {charCount < 300 && (
+                  <p className="text-xs text-amber-500 mt-1">
+                    Recommended: 300+ characters for better analysis
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
           
           {/* Link Checking Option */}
           <div className="mb-4">
