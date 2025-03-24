@@ -12,6 +12,56 @@ export interface DocumentParseResult {
 }
 
 /**
+ * Extract a title from PDF content using more advanced heuristics
+ */
+function extractPdfTitle(text: string): string | null {
+  if (!text || !text.trim()) return null;
+  
+  // Split into lines and remove empty ones
+  const lines = text.split('\n').filter(line => line.trim().length > 0);
+  if (lines.length === 0) return null;
+  
+  // Strategy 1: Look for a line that contains "title:" (case insensitive)
+  for (let i = 0; i < Math.min(20, lines.length); i++) {
+    const titleMatch = lines[i].match(/title\s*:?\s*(.*)/i);
+    if (titleMatch && titleMatch[1] && titleMatch[1].trim().length > 3) {
+      const extractedTitle = titleMatch[1].trim();
+      console.log("Title extracted from PDF title keyword:", extractedTitle);
+      return extractedTitle;
+    }
+  }
+  
+  // Strategy 2: First line if it's relatively short (likely a title) 
+  // and doesn't look like a header/page number/disclaimer
+  const firstLine = lines[0].trim();
+  if (firstLine.length > 5 && firstLine.length < 100 && 
+      !firstLine.match(/^(page|[0-9]+|disclaimer|confidential|draft|copyright)/i)) {
+    console.log("Title extracted from PDF first line:", firstLine);
+    return firstLine;
+  }
+  
+  // Strategy 3: Look for a line that's significantly shorter than average
+  // (typically titles are shorter than body text)
+  const avgLineLength = lines.slice(0, 20).reduce((sum, line) => sum + line.length, 0) / Math.min(20, lines.length);
+  for (let i = 0; i < Math.min(10, lines.length); i++) {
+    const line = lines[i].trim();
+    if (line.length > 10 && line.length < avgLineLength * 0.6 && 
+        line.length < 100 && !line.match(/^(page|[0-9]+|disclaimer|confidential|draft|copyright)/i)) {
+      console.log("Title extracted from PDF short line:", line);
+      return line;
+    }
+  }
+  
+  // Strategy 4: Just use the first line if all else fails
+  if (firstLine.length > 0) {
+    console.log("Title extracted from PDF fallback to first line:", firstLine);
+    return firstLine;
+  }
+  
+  return null;
+}
+
+/**
  * Parse a PDF Buffer to extract text content
  */
 async function processPdf(buffer: Buffer): Promise<DocumentParseResult> {
@@ -29,9 +79,8 @@ async function processPdf(buffer: Buffer): Promise<DocumentParseResult> {
       // Extract text
       const text = data.text || '';
       
-      // Try to extract a title from the first few lines
-      const lines = text.split('\n').filter((line: string) => line.trim().length > 0);
-      const potentialTitle = lines.length > 0 ? lines[0].trim() : null;
+      // Extract title using better heuristics
+      const potentialTitle = extractPdfTitle(text);
       
       // Extract links (PDF parsing doesn't always get hyperlinks, but we try)
       const links = extractLinksFromText(text);
@@ -57,9 +106,8 @@ async function processPdf(buffer: Buffer): Promise<DocumentParseResult> {
       // Extract text
       const text = data.text || '';
       
-      // Try to extract a title from the first few lines
-      const lines = text.split('\n').filter((line: string) => line.trim().length > 0);
-      const potentialTitle = lines.length > 0 ? lines[0].trim() : null;
+      // Extract title using better heuristics
+      const potentialTitle = extractPdfTitle(text);
       
       // Extract links (PDF parsing doesn't always get hyperlinks, but we try)
       const links = extractLinksFromText(text);
@@ -101,6 +149,54 @@ async function processPdf(buffer: Buffer): Promise<DocumentParseResult> {
 }
 
 /**
+ * Extract a title from DOCX content using more advanced heuristics
+ */
+function extractDocxTitle(text: string): string | null {
+  if (!text || !text.trim()) return null;
+  
+  // Split into lines and remove empty ones
+  const lines = text.split('\n').filter(line => line.trim().length > 0);
+  if (lines.length === 0) return null;
+  
+  // Strategy 1: Look for a line that contains "title:" (case insensitive)
+  for (let i = 0; i < Math.min(20, lines.length); i++) {
+    const titleMatch = lines[i].match(/title\s*:?\s*(.*)/i);
+    if (titleMatch && titleMatch[1] && titleMatch[1].trim().length > 3) {
+      const extractedTitle = titleMatch[1].trim();
+      console.log("Title extracted from DOCX title keyword:", extractedTitle);
+      return extractedTitle;
+    }
+  }
+  
+  // Strategy 2: First line if it's reasonably short and doesn't look like a header
+  const firstLine = lines[0].trim();
+  if (firstLine.length > 5 && firstLine.length < 100 && 
+      !firstLine.match(/^(page|[0-9]+|disclaimer|confidential|draft|copyright)/i)) {
+    console.log("Title extracted from DOCX first line:", firstLine);
+    return firstLine;
+  }
+  
+  // Strategy 3: If the first line is very short and the second line is longer,
+  // the first line might be a title, and the second line might be a subtitle or author
+  if (lines.length > 1) {
+    const firstLine = lines[0].trim();
+    const secondLine = lines[1].trim();
+    if (firstLine.length > 3 && firstLine.length < 60 && secondLine.length > firstLine.length) {
+      console.log("Title extracted from DOCX first short line:", firstLine);
+      return firstLine;
+    }
+  }
+  
+  // Strategy 4: Just use the first line if all else fails
+  if (firstLine.length > 0) {
+    console.log("Title extracted from DOCX fallback to first line:", firstLine);
+    return firstLine;
+  }
+  
+  return null;
+}
+
+/**
  * Parse a DOCX Buffer to extract text content
  */
 async function parseDocx(buffer: Buffer): Promise<DocumentParseResult> {
@@ -108,9 +204,8 @@ async function parseDocx(buffer: Buffer): Promise<DocumentParseResult> {
     const result = await mammoth.extractRawText({ buffer });
     const text = result.value || '';
     
-    // Try to extract a title from the first few lines
-    const lines = text.split('\n').filter(line => line.trim().length > 0);
-    const potentialTitle = lines.length > 0 ? lines[0].trim() : null;
+    // Extract title using better heuristics
+    const potentialTitle = extractDocxTitle(text);
     
     // Extract links
     const links = extractLinksFromText(text);
@@ -481,17 +576,73 @@ export async function parseDocument(buffer: Buffer, filename: string): Promise<D
         }
       }
       
-      // If still no title, fall back to first heading
+      // If still no title, try DOM-based heading extraction
       if (!htmlTitle) {
-        const headingMatch = htmlText.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-        if (headingMatch && headingMatch[1]) {
-          // Clean up HTML tags from inside the heading
-          htmlTitle = headingMatch[1]
-            .replace(/<[^>]*>/g, '')
-            .trim()
-            .replace(/\s+/g, ' ');
+        try {
+          // If we don't already have a DOM instance
+          const dom = new JSDOM(htmlText);
+          const document = dom.window.document;
           
-          console.log("Title extracted from H1 tag:", htmlTitle);
+          // Try H1 first
+          const h1 = document.querySelector('h1');
+          if (h1 && h1.textContent) {
+            htmlTitle = h1.textContent.trim().replace(/\s+/g, ' ');
+            console.log("Title extracted from H1 tag:", htmlTitle);
+          } 
+          // Then try H2 if no H1
+          else {
+            const h2 = document.querySelector('h2');
+            if (h2 && h2.textContent) {
+              htmlTitle = h2.textContent.trim().replace(/\s+/g, ' ');
+              console.log("Title extracted from H2 tag:", htmlTitle);
+            }
+          }
+          
+          // If that fails, try the first strong/b tag near the top of the page
+          if (!htmlTitle) {
+            const boldElements = document.querySelectorAll('strong, b');
+            if (boldElements.length > 0) {
+              // Only use the first bold element if it's in the first 10% of the content
+              const firstBold = boldElements[0];
+              const documentHeight = document.body.textContent?.length || 0;
+              
+              // Rough estimate of element position in document
+              if (documentHeight > 0 && firstBold.textContent) {
+                const boldText = firstBold.textContent.trim();
+                // Only use if it's reasonably long but not too long
+                if (boldText.length > 5 && boldText.length < 100) {
+                  htmlTitle = boldText;
+                  console.log("Title extracted from first bold element:", htmlTitle);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error("DOM-based heading extraction failed:", error);
+        }
+        
+        // Fallback to regex-based extraction if DOM approach failed
+        if (!htmlTitle) {
+          const headingMatch = htmlText.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+          if (headingMatch && headingMatch[1]) {
+            // Clean up HTML tags from inside the heading
+            htmlTitle = headingMatch[1]
+              .replace(/<[^>]*>/g, '')
+              .trim()
+              .replace(/\s+/g, ' ');
+            
+            console.log("Title extracted from H1 tag (regex):", htmlTitle);
+          } else {
+            const h2Match = htmlText.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i);
+            if (h2Match && h2Match[1]) {
+              htmlTitle = h2Match[1]
+                .replace(/<[^>]*>/g, '')
+                .trim()
+                .replace(/\s+/g, ' ');
+              
+              console.log("Title extracted from H2 tag (regex):", htmlTitle);
+            }
+          }
         }
       }
       
