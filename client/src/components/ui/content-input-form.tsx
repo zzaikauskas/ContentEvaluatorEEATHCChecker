@@ -87,17 +87,29 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
     let metaTitleDescExtracted: string | null = null;
     
     if (titlePos !== -1) {
-      // Find the position of "Meta Description:" after the title position
+      // Get text after "Meta Title:"
       const afterTitleText = text.substring(titlePos);
-      const descPos = afterTitleText.search(/Meta\s+[dD]escription\s*:/i);
+      const titleColonPos = afterTitleText.search(/:/i);
       
-      // If description is found, extract the text between title and description
-      if (descPos !== -1) {
-        // Find position after the colon in Meta Title:
-        const titleColonPos = afterTitleText.search(/:/i);
-        if (titleColonPos !== -1) {
-          // Extract the text between the title's colon and the description
-          metaTitleDescExtracted = afterTitleText.substring(titleColonPos + 1, descPos).trim();
+      if (titleColonPos !== -1) {
+        // Find where the description starts
+        const descPos = afterTitleText.search(/Meta\s+[dD]escription\s*:/i);
+        
+        // If description is found, extract the text between title and description
+        if (descPos !== -1) {
+          // Look for a line break before Meta Description to better isolate just the title
+          let titleEndMarker = descPos;
+          const lineBreakBeforeDesc = afterTitleText.substring(titleColonPos + 1, descPos).search(/[\r\n]/);
+          
+          if (lineBreakBeforeDesc !== -1) {
+            // Use the line break as the end of the title
+            titleEndMarker = titleColonPos + 1 + lineBreakBeforeDesc;
+          }
+          
+          // Extract the title text
+          metaTitleDescExtracted = afterTitleText
+            .substring(titleColonPos + 1, titleEndMarker)
+            .trim();
         }
       }
     }

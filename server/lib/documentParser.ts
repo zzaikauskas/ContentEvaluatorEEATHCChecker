@@ -20,19 +20,32 @@ function extractBetweenTitleAndDescription(text: string): string | null {
   if (titlePos === -1) return null;
   
   // Find the position of "Meta Description:" after the title position
-  const descPos = text.substring(titlePos).search(/Meta\s+Description\s*:/i);
+  const textAfterTitle = text.substring(titlePos);
+  const metaTitleEndPos = textAfterTitle.search(/:/i);
+  
+  if (metaTitleEndPos === -1) return null;
+  
+  // Find where the description starts
+  const descPos = textAfterTitle.search(/Meta\s+Description\s*:/i);
   
   // If both positions are found, extract the text between them
   if (descPos !== -1) {
-    // Get the position after "Meta Title:"
-    const titleEndPos = text.substring(titlePos).search(/:/i) + titlePos + 1;
+    // Extract just the title text between the colon and the next line break or Meta Description tag
+    let titleEndMarker = descPos;
     
-    // Extract text between the end of title tag and start of description tag
-    const extractedText = text.substring(
-      titleEndPos, 
-      titlePos + descPos
-    ).trim();
+    // Look for a line break before Meta Description
+    const lineBreakBeforeDesc = textAfterTitle.substring(metaTitleEndPos + 1, descPos).search(/[\r\n]/);
+    if (lineBreakBeforeDesc !== -1) {
+      // Use the line break as the end of the title
+      titleEndMarker = metaTitleEndPos + 1 + lineBreakBeforeDesc;
+    }
     
+    // Extract the title text
+    const extractedText = textAfterTitle
+      .substring(metaTitleEndPos + 1, titleEndMarker)
+      .trim();
+    
+    // Further clean the title if there are any tags
     return extractedText;
   }
   
