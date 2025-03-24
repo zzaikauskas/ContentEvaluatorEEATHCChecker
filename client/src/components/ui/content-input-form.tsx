@@ -102,8 +102,9 @@ const ContentInputForm = ({ setEvaluationState, isLoading }: ContentInputFormPro
       }
     }
     
+    // Use the manually extracted text between Meta Title and Meta Description
     if (metaTitleDescExtracted) {
-      const title = metaTitleDescExtracted.trim().replace(/["'\r\n]+$/, '').trim();
+      const title = metaTitleDescExtracted.replace(/["'\r\n]+$/, '').trim();
       if (title.length > 5 && title.length < 200) {
         console.log('Title extracted from "Meta Title-Description" pattern:', title);
         return title;

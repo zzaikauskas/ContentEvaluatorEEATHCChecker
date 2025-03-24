@@ -12,6 +12,34 @@ export interface DocumentParseResult {
 }
 
 /**
+ * Extract text between Meta Title and Meta Description without regex /s flag
+ */
+function extractBetweenTitleAndDescription(text: string): string | null {
+  // Find the position of "Meta Title:" (case insensitive)
+  const titlePos = text.search(/Meta\s+Title\s*:/i);
+  if (titlePos === -1) return null;
+  
+  // Find the position of "Meta Description:" after the title position
+  const descPos = text.substring(titlePos).search(/Meta\s+Description\s*:/i);
+  
+  // If both positions are found, extract the text between them
+  if (descPos !== -1) {
+    // Get the position after "Meta Title:"
+    const titleEndPos = text.substring(titlePos).search(/:/i) + titlePos + 1;
+    
+    // Extract text between the end of title tag and start of description tag
+    const extractedText = text.substring(
+      titleEndPos, 
+      titlePos + descPos
+    ).trim();
+    
+    return extractedText;
+  }
+  
+  return null;
+}
+
+/**
  * Extract a title from PDF content using more advanced heuristics
  */
 function extractPdfTitle(text: string): string | null {
@@ -509,33 +537,17 @@ export async function parseDocument(buffer: Buffer, filename: string): Promise<D
       
       // Check for Meta title pattern in content - this can appear in various forms
       if (!htmlTitle) {
-        // Extract the text between Meta Title and Meta Description
-        // Find the position of "Meta Title:" (case insensitive)
-        const titlePos = htmlText.search(/Meta\s+Title\s*:/i);
+        // Extract the text between Meta Title and Meta Description using our helper function
+        const extractedMetaTitle = extractBetweenTitleAndDescription(htmlText);
         
-        if (titlePos !== -1) {
-          // Find the position of "Meta Description:" after the title position
-          const descPos = htmlText.substring(titlePos).search(/Meta\s+Description\s*:/i);
+        if (extractedMetaTitle) {
+          htmlTitle = extractedMetaTitle
+            .replace(/<[^>]*>/g, '')
+            .trim()
+            .replace(/\s+/g, ' ')
+            .replace(/&nbsp;/g, ' ');
           
-          // If both positions are found, extract the text between them
-          if (descPos !== -1) {
-            // Get the position after "Meta Title:"
-            const titleEndPos = htmlText.substring(titlePos).search(/:/i) + titlePos + 1;
-            
-            // Extract text between the end of title tag and start of description tag
-            const extractedText = htmlText.substring(
-              titleEndPos, 
-              titlePos + descPos
-            ).trim();
-            
-            htmlTitle = extractedText
-              .replace(/<[^>]*>/g, '')
-              .trim()
-              .replace(/\s+/g, ' ')
-              .replace(/&nbsp;/g, ' ');
-            
-            console.log("Title extracted from Meta Title-Description pattern:", htmlTitle);
-          }
+          console.log("Title extracted from Meta Title-Description pattern:", htmlTitle);
         }
         
         // If that fails, look for the exact pattern "Meta title:" followed by text
